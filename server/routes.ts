@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { uploadToDropbox, createUserFolder } from "./dropbox";
 import { sendSubmissionNotification } from "./email";
 import { upload, handleUploadError } from "./multer";
+import { downloadArticleAsZip } from "./download";
 import { insertArticleSchema, updateArticleSchema } from "@shared/schema";
 import { validateRequest } from "zod-express-middleware";
 import fs from "fs";
@@ -300,6 +301,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
+  // Handle article download as zip
+  app.get("/api/articles/:id/download", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const id = parseInt(req.params.id);
+      const article = await storage.getArticle(id);
+
+      if (!article) {
+        return res.status(404).json({ message: "Article not found" });
+      }
+
+      // Check article is approved or user has permission
+      if (article.status !== "approved" && !req.user.isAdmin && article.userId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "You can only download approved articles or your own articles" 
+        });
+      }
+
+      // Get the author
+      const author = await storage.getUser(article.userId);
+      if (!author) {
+        return res.status(500).json({ message: "Author information not found" });
+      }
+
+      // Generate and send the zip file
+      await downloadArticleAsZip(article, author, res);
+      
+    } catch (error) {
+      console.error("Error downloading article:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to download article" });
+      }
     }
   });
 

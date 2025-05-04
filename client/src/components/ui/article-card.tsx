@@ -1,8 +1,9 @@
 import { Article } from "@shared/schema";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { CalendarDays, Clock, FileText, Eye, Edit } from "lucide-react";
+import { CalendarDays, Clock, FileText, Eye, Edit, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 
 type ArticleCardProps = {
   article: Article;
@@ -11,6 +12,29 @@ type ArticleCardProps = {
 };
 
 export function ArticleCard({ article, onView, onEdit }: ArticleCardProps) {
+  // Function to handle downloading article
+  const handleDownload = async () => {
+    try {
+      // Start download by opening a new window/tab with the download URL
+      window.open(`/api/articles/${article.id}/download`, '_blank');
+      
+      toast({
+        title: "Download started",
+        description: "Your download should begin automatically",
+      });
+    } catch (error) {
+      console.error("Error downloading article:", error);
+      toast({
+        title: "Download failed",
+        description: "There was a problem downloading the article",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Determine if we can show download button (approved articles only)
+  const showDownloadButton = article.status === "approved";
+  
   return (
     <div className="p-4 sm:p-6 hover:bg-neutral-lightest transition duration-200">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -51,17 +75,33 @@ export function ArticleCard({ article, onView, onEdit }: ArticleCardProps) {
         <div className="flex items-center">
           <StatusBadge status={article.status} />
           <div className="flex ml-3">
+            {/* Download button for approved articles */}
+            {showDownloadButton && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleDownload} 
+                className="text-muted-foreground hover:text-green-600"
+                title="Download article and images"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
+            
+            {/* Edit button */}
             {onEdit && (
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={onEdit} 
-                className="text-muted-foreground hover:text-primary"
+                className="text-muted-foreground hover:text-primary ml-2"
                 title="Edit"
               >
                 <Edit className="h-4 w-4" />
               </Button>
             )}
+            
+            {/* View button */}
             {onView && (
               <Button 
                 variant="ghost" 
