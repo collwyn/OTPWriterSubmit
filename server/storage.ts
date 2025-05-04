@@ -23,7 +23,7 @@ export interface IStorage {
   getArticleCountByStatus(userId?: number): Promise<{ [key: string]: number }>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: any;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -130,16 +130,13 @@ export class DatabaseStorage implements IStorage {
       rejected: 0,
     };
     
-    // Base query
-    let baseQuery = db.select().from(articles);
-    
-    // Add user filter if provided
+    // Get all articles with optional user filter
+    let allArticles: Article[];
     if (userId) {
-      baseQuery = baseQuery.where(eq(articles.userId, userId));
+      allArticles = await db.select().from(articles).where(eq(articles.userId, userId));
+    } else {
+      allArticles = await db.select().from(articles);
     }
-    
-    // Get all articles
-    const allArticles = await baseQuery;
     
     // Count by status
     counts.total = allArticles.length;
