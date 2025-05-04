@@ -19,10 +19,13 @@ function Router() {
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/submit" component={SubmitStoryPage} />
       <ProtectedRoute path="/submit-story" component={SubmitStoryPage} />
-      {/* Use Route with params function for submissions with ID parameter */}
+      {/* Use ProtectedRoute with route params for submissions with ID parameter */}
       <Route path="/submissions/:id">
         {(params) => (
-          <ReviewSubmissionPage id={params.id} />
+          <ProtectedRoute 
+            path={`/submissions/${params.id}`} 
+            component={() => <ReviewSubmissionPage id={params.id} />}
+          />
         )}
       </Route>
       <ProtectedRoute path="/admin" adminOnly component={AdminDashboardPage} />

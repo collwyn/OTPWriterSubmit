@@ -46,13 +46,10 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
   }, [user, navigate]);
 
   // Fetch article (only if user is authenticated)
-  const { data: rawArticleResponse, isLoading: isLoadingArticle, error: articleError } = useQuery<any>({
+  const { data: article, isLoading: isLoadingArticle, error: articleError } = useQuery<ArticleWithAuthor>({
     queryKey: ['/api/articles', articleId],
     enabled: !!articleId && !!user,
   });
-  
-  // Access the array that's returned from the API and get the first item
-  const article = Array.isArray(rawArticleResponse) ? rawArticleResponse[0] : rawArticleResponse;
   
   // Log article data when it changes
   useEffect(() => {

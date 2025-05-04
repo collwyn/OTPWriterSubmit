@@ -10,7 +10,7 @@ export function ProtectedRoute({
   adminOnly = false,
 }: {
   path: string;
-  component: () => React.JSX.Element;
+  component: ((params?: any) => React.JSX.Element) | React.FC<any>; 
   adminOnly?: boolean;
 }) {
   const { user, isLoading } = useAuth();
