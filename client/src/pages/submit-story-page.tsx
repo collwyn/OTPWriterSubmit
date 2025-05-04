@@ -280,49 +280,7 @@ export default function SubmitStoryPage() {
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="targetAudience"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Target Audience</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                    >
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="general" />
-                        </FormControl>
-                        <FormLabel className="font-normal">General Audience</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="specialized" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Specialized/Subject Matter Experts</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="youth" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Young Adults</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="business" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Business Professionals</FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
           </div>
         );
       case 2:
@@ -511,15 +469,7 @@ export default function SubmitStoryPage() {
                     <dt className="text-muted-foreground">Keywords</dt>
                     <dd className="mt-1 text-neutral-dark">{form.getValues('keywords') || 'None'}</dd>
                   </div>
-                  <div>
-                    <dt className="text-muted-foreground">Target Audience</dt>
-                    <dd className="mt-1 text-neutral-dark">
-                      {form.getValues('targetAudience') === 'general' && 'General Audience'}
-                      {form.getValues('targetAudience') === 'specialized' && 'Specialized/Subject Matter Experts'}
-                      {form.getValues('targetAudience') === 'youth' && 'Young Adults'}
-                      {form.getValues('targetAudience') === 'business' && 'Business Professionals'}
-                    </dd>
-                  </div>
+
                 </dl>
               </div>
             </div>
@@ -600,7 +550,7 @@ export default function SubmitStoryPage() {
                       I confirm that this work is original and does not infringe on any copyrights
                     </label>
                     <p className="text-muted-foreground text-sm mt-1">
-                      By submitting, you grant The Chronicle non-exclusive rights to publish this content in print and digital formats.
+                      By submitting, you grant Our Time Press non-exclusive rights to publish this content in print and digital formats.
                     </p>
                   </div>
                 </div>

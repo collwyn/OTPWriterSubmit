@@ -65,7 +65,7 @@ export default function AuthPage() {
       <Card className="w-full max-w-md">
         <CardContent className="pt-6">
           <div className="flex justify-center mb-8">
-            <h1 className="font-display text-3xl font-bold text-primary">The Chronicle</h1>
+            <h1 className="font-display text-3xl font-bold text-primary">Our Time Press</h1>
           </div>
           <h2 className="text-2xl font-semibold mb-6 text-center text-neutral-dark">Writers Portal</h2>
 

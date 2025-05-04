@@ -45,7 +45,7 @@ export default function Header() {
           <div className="flex items-center">
             <Link href="/">
               <h1 className="font-display text-2xl font-bold text-primary mr-6 cursor-pointer">
-                The Chronicle
+                Our Time Press
               </h1>
             </Link>
             <nav className="hidden md:flex space-x-8">
