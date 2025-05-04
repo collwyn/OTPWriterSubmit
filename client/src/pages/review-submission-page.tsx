@@ -29,10 +29,10 @@ export default function ReviewSubmissionPage() {
   const { toast } = useToast();
   const [feedback, setFeedback] = useState("");
   
-  // Get article ID from URL
+  // Get article ID from URL params
   const articleId = params.id;
-
-  console.log("Reviewing article ID:", articleId);
+  
+  console.log("ReviewSubmissionPage: Attempting to load article ID:", articleId);
 
   // Fetch article
   const { data: article, isLoading: isLoadingArticle, error: articleError } = useQuery<ArticleWithAuthor>({
@@ -163,9 +163,10 @@ export default function ReviewSubmissionPage() {
                       )}
                       
                       <div className="prose max-w-none">
-                        {article.content.split('\n').map((paragraph, i) => (
+                        {article.content && article.content.split('\n').map((paragraph, i) => (
                           <p key={i} className="mb-4">{paragraph}</p>
                         ))}
+                        {!article.content && <p className="text-muted-foreground">No content available.</p>}
                       </div>
                     </div>
                   </div>
@@ -213,11 +214,11 @@ export default function ReviewSubmissionPage() {
                           </dd>
                         </div>
                         
-                        {article.keywords && (
+                        {article.keywords && article.keywords.trim() && (
                           <div>
                             <dt className="text-sm text-muted-foreground">Keywords</dt>
                             <dd className="flex flex-wrap gap-2 mt-1">
-                              {article.keywords.split(',').map((keyword, i) => (
+                              {article.keywords.split(',').filter(k => k.trim()).map((keyword, i) => (
                                 <span 
                                   key={i} 
                                   className="bg-neutral-lightest text-neutral-dark text-xs px-2 py-1 rounded-full"

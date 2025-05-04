@@ -19,6 +19,7 @@ function Router() {
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/submit" component={SubmitStoryPage} />
       <ProtectedRoute path="/submit-story" component={SubmitStoryPage} />
+      {/* Use ProtectedRoute for submissions with ID parameter */}
       <ProtectedRoute path="/submissions/:id" component={ReviewSubmissionPage} />
       <ProtectedRoute path="/admin" adminOnly component={AdminDashboardPage} />
       <Route component={NotFound} />
