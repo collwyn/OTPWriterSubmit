@@ -1,8 +1,10 @@
 import { users, type User, type InsertUser, articles, type Article, type InsertArticle, type UpdateArticle } from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
+import { db, pool } from "./db";
+import { eq, asc, desc, sql, and } from "drizzle-orm";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPgSimple(session);
 
 export interface IStorage {
   // User operations
@@ -24,129 +26,133 @@ export interface IStorage {
   sessionStore: session.SessionStore;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private articles: Map<number, Article>;
-  private userCurrentId: number;
-  private articleCurrentId: number;
-  sessionStore: session.SessionStore;
+export class DatabaseStorage implements IStorage {
+  sessionStore: any;
 
   constructor() {
-    this.users = new Map();
-    this.articles = new Map();
-    this.userCurrentId = 1;
-    this.articleCurrentId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
-    });
-    
-    // Create an admin user by default
-    this.createUser({
-      username: "admin",
-      email: "admin@thechronicle.com",
-      password: "admin123" // This will be hashed in auth.ts
-    }).then(user => {
-      // Set admin flag for the admin user
-      const adminUser = { ...user, isAdmin: true };
-      this.users.set(user.id, adminUser);
+    this.sessionStore = new PostgresSessionStore({ 
+      pool,
+      createTableIfMissing: true
     });
   }
 
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username.toLowerCase() === username.toLowerCase(),
-    );
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username.toLowerCase()));
+    return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email.toLowerCase() === email.toLowerCase(),
-    );
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userCurrentId++;
-    const user: User = { ...insertUser, id, isAdmin: false };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        username: insertUser.username.toLowerCase(),
+        email: insertUser.email.toLowerCase()
+      })
+      .returning();
     return user;
   }
 
   async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
+    return await db.select().from(users);
   }
 
   // Article operations
   async createArticle(userId: number, insertArticle: InsertArticle): Promise<Article> {
-    const id = this.articleCurrentId++;
-    const now = new Date();
-    const article: Article = {
-      ...insertArticle,
-      id,
-      userId,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.articles.set(id, article);
+    const [article] = await db
+      .insert(articles)
+      .values({
+        ...insertArticle,
+        userId,
+      })
+      .returning();
     return article;
   }
 
   async getArticle(id: number): Promise<Article | undefined> {
-    return this.articles.get(id);
+    const [article] = await db
+      .select()
+      .from(articles)
+      .where(eq(articles.id, id));
+    return article;
   }
 
   async getArticlesByUserId(userId: number): Promise<Article[]> {
-    return Array.from(this.articles.values()).filter(
-      (article) => article.userId === userId,
-    );
+    return await db
+      .select()
+      .from(articles)
+      .where(eq(articles.userId, userId))
+      .orderBy(desc(articles.createdAt));
   }
 
   async getAllArticles(): Promise<Article[]> {
-    return Array.from(this.articles.values());
+    return await db
+      .select()
+      .from(articles)
+      .orderBy(desc(articles.createdAt));
   }
 
   async updateArticle(id: number, updateData: UpdateArticle): Promise<Article | undefined> {
-    const article = this.articles.get(id);
-    if (!article) {
-      return undefined;
-    }
-
-    const updatedArticle: Article = {
-      ...article,
-      ...updateData,
-      updatedAt: new Date(),
-    };
-
-    this.articles.set(id, updatedArticle);
-    return updatedArticle;
+    const [article] = await db
+      .update(articles)
+      .set({
+        ...updateData,
+        updatedAt: new Date(),
+      })
+      .where(eq(articles.id, id))
+      .returning();
+    return article;
   }
 
   async getArticleCountByStatus(userId?: number): Promise<{ [key: string]: number }> {
-    const articles = userId 
-      ? await this.getArticlesByUserId(userId)
-      : await this.getAllArticles();
-    
     const counts: { [key: string]: number } = {
-      total: articles.length,
+      total: 0,
       draft: 0,
       underReview: 0,
       approved: 0,
       rejected: 0,
     };
-
-    articles.forEach(article => {
+    
+    // Base query
+    let baseQuery = db.select().from(articles);
+    
+    // Add user filter if provided
+    if (userId) {
+      baseQuery = baseQuery.where(eq(articles.userId, userId));
+    }
+    
+    // Get all articles
+    const allArticles = await baseQuery;
+    
+    // Count by status
+    counts.total = allArticles.length;
+    
+    for (const article of allArticles) {
       if (article.status === 'draft') counts.draft++;
       else if (article.status === 'underReview') counts.underReview++;
       else if (article.status === 'approved') counts.approved++;
       else if (article.status === 'rejected') counts.rejected++;
-    });
-
+    }
+    
     return counts;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

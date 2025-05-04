@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -12,7 +13,7 @@ export const users = pgTable("users", {
 
 export const articles = pgTable("articles", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   summary: text("summary").notNull(),
   content: text("content").notNull(),
@@ -48,6 +49,17 @@ export const insertArticleSchema = createInsertSchema(articles).omit({
 });
 
 export const updateArticleSchema = insertArticleSchema.partial();
+
+export const usersRelations = relations(users, ({ many }) => ({
+  articles: many(articles),
+}));
+
+export const articlesRelations = relations(articles, ({ one }) => ({
+  author: one(users, {
+    fields: [articles.userId],
+    references: [users.id],
+  }),
+}));
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
