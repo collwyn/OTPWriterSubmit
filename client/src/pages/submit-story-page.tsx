@@ -270,6 +270,7 @@ export default function SubmitStoryPage() {
                     <Input 
                       placeholder="climate, environment, policy, etc." 
                       {...field} 
+                      value={field.value ?? ''}
                     />
                   </FormControl>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -326,7 +327,7 @@ export default function SubmitStoryPage() {
                     <FormControl>
                       <Textarea 
                         placeholder="Write your story here or paste from a document" 
-                        className="border-0 focus-visible:ring-0 resize-none"
+                        className="min-h-[300px] border-0 focus-visible:ring-0 resize-vertical"
                         rows={12}
                         {...field} 
                       />

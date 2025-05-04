@@ -16,29 +16,69 @@ export function SubmissionStepper({ currentStep }: SubmissionStepperProps) {
     <div className="mb-8">
       <div className="flex items-center">
         {steps.map((step, index) => (
-          <div key={step.number} className="flex items-center relative">
-            {/* Step circle */}
-            <div
-              className={cn(
-                "rounded-full h-8 w-8 flex items-center justify-center font-semibold text-sm",
-                currentStep > step.number
-                  ? "bg-success text-white"
-                  : currentStep === step.number
-                  ? "bg-primary text-white"
-                  : "bg-neutral-light text-muted-foreground"
+          <div key={step.number} className="flex-1 relative">
+            <div className="flex items-center">
+              {/* Connector line before first item */}
+              {index === 0 && (
+                <div className="w-[20%] hidden md:block"></div>
               )}
-            >
-              {currentStep > step.number ? (
-                <CheckIcon className="h-4 w-4" />
-              ) : (
-                step.number
+              
+              {/* Connector line - for all items except first */}
+              {index > 0 && (
+                <div
+                  className={cn(
+                    "flex-1 border-t-2 mr-2",
+                    currentStep > step.number
+                      ? "border-success"
+                      : currentStep === step.number && index > 0
+                      ? "border-success"
+                      : "border-neutral-light"
+                  )}
+                ></div>
+              )}
+            
+              {/* Step circle */}
+              <div
+                className={cn(
+                  "rounded-full h-8 w-8 flex items-center justify-center font-semibold text-sm",
+                  currentStep > step.number
+                    ? "bg-success text-white"
+                    : currentStep === step.number
+                    ? "bg-primary text-white"
+                    : "bg-neutral-light text-muted-foreground"
+                )}
+              >
+                {currentStep > step.number ? (
+                  <CheckIcon className="h-4 w-4" />
+                ) : (
+                  step.number
+                )}
+              </div>
+              
+              {/* Connector line after last item */}
+              {index === steps.length - 1 && (
+                <div className="w-[20%] hidden md:block"></div>
+              )}
+              
+              {/* Connector line - for all items except last */}
+              {index < steps.length - 1 && (
+                <div
+                  className={cn(
+                    "flex-1 border-t-2 ml-2",
+                    currentStep > step.number + 1
+                      ? "border-success"
+                      : currentStep > step.number
+                      ? "border-success"
+                      : "border-neutral-light"
+                  )}
+                ></div>
               )}
             </div>
-
+            
             {/* Step label */}
             <div
               className={cn(
-                "absolute top-0 -ml-4 text-xs font-medium w-max",
+                "absolute top-10 left-1/2 -translate-x-1/2 text-xs font-medium text-center w-full px-1",
                 currentStep > step.number
                   ? "text-success"
                   : currentStep === step.number
@@ -46,22 +86,8 @@ export function SubmissionStepper({ currentStep }: SubmissionStepperProps) {
                   : "text-muted-foreground"
               )}
             >
-              <span className="mt-10 block">{step.label}</span>
+              <span>{step.label}</span>
             </div>
-
-            {/* Connector line - skip after the last item */}
-            {index < steps.length - 1 && (
-              <div
-                className={cn(
-                  "flex-auto border-t-2",
-                  currentStep > step.number + 1
-                    ? "border-success"
-                    : currentStep > step.number
-                    ? "border-success"
-                    : "border-neutral-light"
-                )}
-              ></div>
-            )}
           </div>
         ))}
       </div>
