@@ -287,59 +287,57 @@ export default function SubmitStoryPage() {
       case 2:
         return (
           <div className="space-y-6">
-            <FormField
-              control={form.control}
-              name="content"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Story Content <span className="text-secondary">*</span></FormLabel>
-                  <div className="mt-1 bg-white border border-neutral-light rounded-md shadow-sm">
-                    <div className="px-3 py-2 border-b border-neutral-light">
-                      <div className="flex flex-wrap items-center gap-1">
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
-                          <Bold className="h-4 w-4" />
-                        </Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
-                          <Italic className="h-4 w-4" />
-                        </Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
-                          <Underline className="h-4 w-4" />
-                        </Button>
-                        <Separator orientation="vertical" className="h-6" />
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
-                          <Heading className="h-4 w-4" />
-                        </Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
-                          <Quote className="h-4 w-4" />
-                        </Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
-                          <List className="h-4 w-4" />
-                        </Button>
-                        <Separator orientation="vertical" className="h-6" />
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
-                          <Link className="h-4 w-4" />
-                        </Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
-                          <Image className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Write your story here or paste from a document" 
-                        className="w-full min-h-[300px] border-0 focus-visible:ring-0 resize-vertical p-3"
-                        rows={12}
-                        {...field} 
-                      />
-                    </FormControl>
+            <div className="space-y-2">
+              <FormLabel htmlFor="content">Story Content <span className="text-secondary">*</span></FormLabel>
+              <div className="bg-white border border-neutral-light rounded-md shadow-sm">
+                <div className="px-3 py-2 border-b border-neutral-light">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                      <Bold className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                      <Italic className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                      <Underline className="h-4 w-4" />
+                    </Button>
+                    <Separator orientation="vertical" className="h-6" />
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                      <Heading className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                      <Quote className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                      <List className="h-4 w-4" />
+                    </Button>
+                    <Separator orientation="vertical" className="h-6" />
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                      <Link className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                      <Image className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Format your content using the toolbar above. You can also paste from Word or Google Docs.
-                  </p>
-                  <FormMessage />
-                </FormItem>
+                </div>
+                <Textarea 
+                  id="content"
+                  placeholder="Write your story here or paste from a document" 
+                  className="block w-full min-h-[300px] border-0 focus-visible:ring-0 resize-vertical p-3"
+                  rows={12}
+                  value={form.getValues('content')}
+                  onChange={(e) => form.setValue('content', e.target.value, { shouldValidate: true })}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Format your content using the toolbar above. You can also paste from Word or Google Docs.
+              </p>
+              {form.formState.errors.content && (
+                <p className="text-destructive text-sm">
+                  {form.formState.errors.content.message as string}
+                </p>
               )}
-            />
+            </div>
             
             <FormItem>
               <FormLabel>Featured Image <span className="text-secondary">*</span></FormLabel>
