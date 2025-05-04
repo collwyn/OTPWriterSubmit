@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation, useParams, useRoute } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
@@ -22,22 +22,33 @@ type ArticleWithAuthor = Article & {
   } | null;
 };
 
-export default function ReviewSubmissionPage() {
+type ReviewSubmissionPageProps = {
+  id?: string;
+};
+
+export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPageProps = {}) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const params = useParams();
   const { toast } = useToast();
   const [feedback, setFeedback] = useState("");
   
-  // Get article ID from URL params
-  const articleId = params.id;
+  // Get article ID from props or URL params
+  const articleId = propId || params.id;
   
   console.log("ReviewSubmissionPage: Attempting to load article ID:", articleId);
+  
+  useEffect(() => {
+    if (!user) {
+      // If not authenticated, redirect to login
+      navigate('/auth');
+    }
+  }, [user, navigate]);
 
-  // Fetch article
+  // Fetch article (only if user is authenticated)
   const { data: article, isLoading: isLoadingArticle, error: articleError } = useQuery<ArticleWithAuthor>({
     queryKey: ['/api/articles', articleId],
-    enabled: !!articleId,
+    enabled: !!articleId && !!user,
   });
 
   // Update article status mutation
