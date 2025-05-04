@@ -327,7 +327,7 @@ export default function SubmitStoryPage() {
                     <FormControl>
                       <Textarea 
                         placeholder="Write your story here or paste from a document" 
-                        className="min-h-[300px] border-0 focus-visible:ring-0 resize-vertical"
+                        className="w-full min-h-[300px] border-0 focus-visible:ring-0 resize-vertical p-3"
                         rows={12}
                         {...field} 
                       />

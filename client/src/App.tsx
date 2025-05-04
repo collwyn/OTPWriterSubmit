@@ -18,6 +18,7 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/submit" component={SubmitStoryPage} />
+      <ProtectedRoute path="/submit-story" component={SubmitStoryPage} />
       <ProtectedRoute path="/submissions/:id" component={ReviewSubmissionPage} />
       <ProtectedRoute path="/admin" adminOnly component={AdminDashboardPage} />
       <Route component={NotFound} />
