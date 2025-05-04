@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { Article, User } from "@shared/schema";
-import { ArrowLeft, Calendar, Clock, FileText, ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, FileText, ThumbsUp, ThumbsDown, MessageSquare, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -101,6 +101,26 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
       status, 
       feedback: feedback.trim() ? feedback : undefined 
     });
+  };
+  
+  // Function to handle downloading article
+  const handleDownload = async () => {
+    try {
+      // Start download by opening a new window/tab with the download URL
+      window.open(`/api/articles/${articleId}/download`, '_blank');
+      
+      toast({
+        title: "Download started",
+        description: "Your download should begin automatically",
+      });
+    } catch (error) {
+      console.error("Error downloading article:", error);
+      toast({
+        title: "Download failed",
+        description: "There was a problem downloading the article",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -234,6 +254,19 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                   <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                     <div className="p-6">
                       <h3 className="font-medium text-lg mb-4">Article Details</h3>
+                      
+                      {/* Download button for approved articles */}
+                      {article.status === "approved" && (
+                        <div className="mb-4">
+                          <Button 
+                            onClick={handleDownload} 
+                            className="bg-green-600 hover:bg-green-700 flex items-center"
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Download Article Package
+                          </Button>
+                        </div>
+                      )}
                       
                       <dl className="space-y-4">
                         <div>
