@@ -87,26 +87,98 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getArticle(id: number): Promise<Article | undefined> {
+    // Get the article from the database
     const [article] = await db
       .select()
       .from(articles)
       .where(eq(articles.id, id));
-    return article;
+    
+    // If no article found, return undefined
+    if (!article) {
+      return undefined;
+    }
+    
+    // Explicitly create a new object with all fields mapped properly
+    // This ensures content field is handled correctly
+    const processedArticle: Article = {
+      id: article.id,
+      userId: article.userId,
+      title: article.title,
+      summary: article.summary,
+      // Explicitly convert content to string to handle any potential serialization issues
+      content: article.content ? String(article.content) : "",
+      category: article.category,
+      keywords: article.keywords,
+      targetAudience: article.targetAudience,
+      featuredImage: article.featuredImage,
+      dropboxLink: article.dropboxLink,
+      status: article.status,
+      wordCount: article.wordCount,
+      createdAt: article.createdAt,
+      updatedAt: article.updatedAt
+    };
+    
+    console.log("Retrieved article from database:", {
+      id: processedArticle.id,
+      title: processedArticle.title,
+      contentExists: !!processedArticle.content,
+      contentLength: processedArticle.content?.length || 0
+    });
+    
+    return processedArticle;
   }
 
   async getArticlesByUserId(userId: number): Promise<Article[]> {
-    return await db
+    // Get articles from database
+    const dbArticles = await db
       .select()
       .from(articles)
       .where(eq(articles.userId, userId))
       .orderBy(desc(articles.createdAt));
+    
+    // Process each article to ensure proper serialization of content field
+    return dbArticles.map(article => ({
+      id: article.id,
+      userId: article.userId,
+      title: article.title,
+      summary: article.summary,
+      content: article.content ? String(article.content) : "",
+      category: article.category,
+      keywords: article.keywords,
+      targetAudience: article.targetAudience,
+      featuredImage: article.featuredImage,
+      dropboxLink: article.dropboxLink,
+      status: article.status,
+      wordCount: article.wordCount,
+      createdAt: article.createdAt,
+      updatedAt: article.updatedAt
+    }));
   }
 
   async getAllArticles(): Promise<Article[]> {
-    return await db
+    // Get all articles from database
+    const dbArticles = await db
       .select()
       .from(articles)
       .orderBy(desc(articles.createdAt));
+    
+    // Process each article to ensure proper serialization of content field
+    return dbArticles.map(article => ({
+      id: article.id,
+      userId: article.userId,
+      title: article.title,
+      summary: article.summary,
+      content: article.content ? String(article.content) : "",
+      category: article.category,
+      keywords: article.keywords,
+      targetAudience: article.targetAudience,
+      featuredImage: article.featuredImage,
+      dropboxLink: article.dropboxLink,
+      status: article.status,
+      wordCount: article.wordCount,
+      createdAt: article.createdAt,
+      updatedAt: article.updatedAt
+    }));
   }
 
   async updateArticle(id: number, updateData: UpdateArticle): Promise<Article | undefined> {
@@ -118,7 +190,28 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(articles.id, id))
       .returning();
-    return article;
+    
+    if (!article) {
+      return undefined;
+    }
+    
+    // Process article to ensure content field is properly serialized
+    return {
+      id: article.id,
+      userId: article.userId,
+      title: article.title,
+      summary: article.summary,
+      content: article.content ? String(article.content) : "",
+      category: article.category,
+      keywords: article.keywords,
+      targetAudience: article.targetAudience,
+      featuredImage: article.featuredImage,
+      dropboxLink: article.dropboxLink,
+      status: article.status,
+      wordCount: article.wordCount,
+      createdAt: article.createdAt,
+      updatedAt: article.updatedAt
+    };
   }
 
   async getArticleCountByStatus(userId?: number): Promise<{ [key: string]: number }> {
