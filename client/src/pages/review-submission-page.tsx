@@ -50,6 +50,18 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
     queryKey: ['/api/articles', articleId],
     enabled: !!articleId && !!user,
   });
+  
+  // Log article data when it changes
+  useEffect(() => {
+    if (article) {
+      console.log("Article data received:", article);
+      console.log("Content available:", !!article.content);
+      if (article.content) {
+        console.log("Content length:", article.content.length);
+        console.log("Content preview:", article.content.substring(0, 30));
+      }
+    }
+  }, [article]);
 
   // Update article status mutation
   const updateStatusMutation = useMutation({

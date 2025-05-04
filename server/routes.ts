@@ -57,6 +57,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!article) {
         return res.status(404).json({ message: "Article not found" });
       }
+      
+      console.log("Article fetched:", {
+        id: article.id,
+        title: article.title,
+        contentLength: article.content ? article.content.length : 0,
+        contentStart: article.content ? article.content.substring(0, 30) : "No content"
+      });
 
       // Only allow access if admin or article owner
       if (!req.user.isAdmin && article.userId !== req.user.id) {
