@@ -26,8 +26,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? await storage.getAllArticles() 
         : await storage.getArticlesByUserId(req.user.id);
 
+      // Create a new array with explicit properties to fix serialization issues
+      const processedArticles = articles.map(article => {
+        // Explicitly construct a new object to avoid any potential serialization issues
+        return {
+          id: article.id,
+          userId: article.userId,
+          title: article.title,
+          summary: article.summary,
+          // Force content to be a string
+          content: article.content ? String(article.content) : "",
+          category: article.category,
+          keywords: article.keywords,
+          targetAudience: article.targetAudience,
+          featuredImage: article.featuredImage,
+          dropboxLink: article.dropboxLink,
+          status: article.status,
+          wordCount: article.wordCount,
+          createdAt: article.createdAt,
+          updatedAt: article.updatedAt
+        };
+      });
+      
       // Get user information for each article (for admin view)
-      const articlesWithUserInfo = await Promise.all(articles.map(async (article) => {
+      const articlesWithUserInfo = await Promise.all(processedArticles.map(async (article) => {
         const user = await storage.getUser(article.userId);
         return {
           ...article,
@@ -38,6 +60,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } : null
         };
       }));
+
+      console.log("Sending articles with content:", articlesWithUserInfo.map(a => ({
+        id: a.id,
+        contentIncluded: 'content' in a,
+        contentType: typeof a.content,
+        contentLength: a.content ? a.content.length : 0
+      })));
 
       res.json(articlesWithUserInfo);
     } catch (error) {
@@ -73,23 +102,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get author information
       const author = await storage.getUser(article.userId);
       
-      // Process content to handle whitespace issues
-      let processedContent = article.content;
-      if (processedContent) {
-        // Ensure content is trimmed and non-empty
-        processedContent = processedContent.trim();
-      }
-      
+      // Create a completely new object with explicitly defined properties
+      // This ensures the content is properly serialized
       const articleWithAuthor = {
-        ...article,
-        // Override content with processed version
-        content: processedContent,
+        id: article.id,
+        userId: article.userId,
+        title: article.title,
+        summary: article.summary,
+        // Force content to be a string and handle trimming
+        content: article.content ? String(article.content).trim() : "",
+        category: article.category,
+        keywords: article.keywords,
+        targetAudience: article.targetAudience,
+        featuredImage: article.featuredImage,
+        dropboxLink: article.dropboxLink,
+        status: article.status,
+        wordCount: article.wordCount,
+        createdAt: article.createdAt,
+        updatedAt: article.updatedAt,
         author: author ? { 
           id: author.id, 
           username: author.username, 
           email: author.email 
         } : null
       };
+      
+      console.log("Sending single article with content info:", {
+        id: articleWithAuthor.id,
+        contentIncluded: 'content' in articleWithAuthor,
+        contentType: typeof articleWithAuthor.content,
+        contentLength: articleWithAuthor.content ? articleWithAuthor.content.length : 0,
+        contentFirstChars: articleWithAuthor.content ? articleWithAuthor.content.substring(0, 30) : ""
+      });
 
       res.json(articleWithAuthor);
     } catch (error) {

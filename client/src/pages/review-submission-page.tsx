@@ -214,19 +214,25 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                         )}
                         
                         {(() => {
+                          console.log('Content type:', typeof article.content);
+                          console.log('Content property exists:', 'content' in article ? 'Yes' : 'No');
+                          console.log('Content is strictly equal to null:', article.content === null);
+                          console.log('Content is strictly equal to undefined:', article.content === undefined);
+                          console.log('Content is truthy:', Boolean(article.content));
+                          console.log('Content as string length:', String(article.content || '').length);
+                          console.log('Content first 50 chars (escaped):', JSON.stringify(String(article.content || '').substring(0, 50)));
+                          
                           // Force content to be a string and handle it directly
                           const contentStr = String(article.content || '');
                           const contentTrimmed = contentStr.trim();
-                          
-                          if (contentTrimmed.length === 0) {
-                            return <p className="text-muted-foreground">No content available.</p>;
-                          }
                           
                           // Split into paragraphs and filter empty ones
                           const paragraphs = contentTrimmed.split('\n')
                             .map(p => p.trim())
                             .filter(p => p.length > 0);
-                            
+                          
+                          console.log('Non-empty paragraphs:', paragraphs.length);
+                          
                           if (paragraphs.length === 0) {
                             return <p className="text-muted-foreground">No content available.</p>;
                           }
