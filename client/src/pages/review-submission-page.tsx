@@ -56,18 +56,27 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
     if (article) {
       console.log("Article data received:", article);
       
-      // Check content in detail
-      if (article.content) {
-        console.log("Raw content length:", article.content.length);
-        console.log("Trimmed content length:", article.content.trim().length);
-        console.log("Content has only whitespace:", article.content.trim().length === 0);
-        console.log("First 50 chars (escaped):", JSON.stringify(article.content.substring(0, 50)));
+      // Inspect the actual content property of the article
+      console.log("Content type:", typeof article.content);
+      console.log("Content property exists:", 'content' in article);
+      console.log("Content is strictly equal to null:", article.content === null);
+      console.log("Content is strictly equal to undefined:", article.content === undefined);
+      console.log("Content is truthy:", !!article.content);
+      
+      // Try accessing content directly
+      try {
+        const contentStr = String(article.content || '');
+        console.log("Content as string length:", contentStr.length);
+        console.log("Content first 50 chars (escaped):", JSON.stringify(contentStr.substring(0, 50)));
         
         // Count non-empty paragraphs
-        const paragraphs = article.content.split('\n').filter(p => p.trim().length > 0);
+        const paragraphs = contentStr.split('\n').filter(p => p.trim().length > 0);
         console.log("Non-empty paragraphs:", paragraphs.length);
-      } else {
-        console.log("Content is null or undefined");
+        if (paragraphs.length > 0) {
+          console.log("First paragraph (escaped):", JSON.stringify(paragraphs[0]));
+        }
+      } catch (err) {
+        console.error("Error processing content:", err);
       }
     }
   }, [article]);
@@ -195,20 +204,37 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                       )}
                       
                       <div className="prose max-w-none">
-                        {/* Debug content length */}
+                        {/* Debug info */}
                         {process.env.NODE_ENV === 'development' && (
                           <div className="mb-3 text-xs text-muted-foreground">
-                            Raw content length: {article.content ? article.content.length : 0}
+                            Content type: {typeof article.content}<br />
+                            Property exists: {'content' in article ? 'Yes' : 'No'}<br />
+                            Content length: {String(article.content || '').length}
                           </div>
                         )}
                         
-                        {article.content && article.content.trim() ? (
-                          article.content.trim().split('\n').filter(para => para.trim()).map((paragraph, i) => (
-                            <p key={i} className="mb-4">{paragraph.trim()}</p>
-                          ))
-                        ) : (
-                          <p className="text-muted-foreground">No content available.</p>
-                        )}
+                        {(() => {
+                          // Force content to be a string and handle it directly
+                          const contentStr = String(article.content || '');
+                          const contentTrimmed = contentStr.trim();
+                          
+                          if (contentTrimmed.length === 0) {
+                            return <p className="text-muted-foreground">No content available.</p>;
+                          }
+                          
+                          // Split into paragraphs and filter empty ones
+                          const paragraphs = contentTrimmed.split('\n')
+                            .map(p => p.trim())
+                            .filter(p => p.length > 0);
+                            
+                          if (paragraphs.length === 0) {
+                            return <p className="text-muted-foreground">No content available.</p>;
+                          }
+                          
+                          return paragraphs.map((paragraph, i) => (
+                            <p key={i} className="mb-4">{paragraph}</p>
+                          ));
+                        })()}
                       </div>
                     </div>
                   </div>

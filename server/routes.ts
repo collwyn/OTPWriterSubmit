@@ -72,8 +72,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get author information
       const author = await storage.getUser(article.userId);
+      
+      // Process content to handle whitespace issues
+      let processedContent = article.content;
+      if (processedContent) {
+        // Ensure content is trimmed and non-empty
+        processedContent = processedContent.trim();
+      }
+      
       const articleWithAuthor = {
         ...article,
+        // Override content with processed version
+        content: processedContent,
         author: author ? { 
           id: author.id, 
           username: author.username, 
@@ -260,6 +270,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(404).json({ message: "Image not found" });
     }
   });
+  
+  // Debug route - only for development
+  if (process.env.NODE_ENV === 'development') {
+    app.get("/api/debug/article/:id", async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
+        const article = await storage.getArticle(id);
+        
+        if (!article) {
+          return res.status(404).json({ message: "Article not found" });
+        }
+        
+        // Return raw article data
+        res.json({
+          article,
+          contentLength: article.content ? article.content.length : 0,
+          contentInfo: article.content ? {
+            firstChars: JSON.stringify(article.content.substring(0, 30)),
+            hasContent: !!article.content,
+            trimmedLength: article.content.trim().length,
+            hasTrimmedContent: article.content.trim().length > 0
+          } : null
+        });
+      } catch (error) {
+        res.status(500).json({ message: "Failed to fetch article debug info" });
+      }
+    });
+  }
 
   const httpServer = createServer(app);
   return httpServer;
