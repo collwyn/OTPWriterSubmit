@@ -28,7 +28,7 @@ type ReviewSubmissionPageProps = {
 
 export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPageProps = {}) {
   const { user } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const params = useParams();
   const { toast } = useToast();
   const [feedback, setFeedback] = useState("");
@@ -36,7 +36,10 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
   // Get article ID from props or URL params
   const articleId = propId || params.id;
   
-  console.log("ReviewSubmissionPage: Attempting to load article ID:", articleId);
+  console.log(`ReviewSubmissionPage: Path ${location}, Attempting to load article ID:`, articleId);
+  
+  // We need to ensure we're making a direct request to the server
+  const articleUrl = `/api/articles/${articleId}`;
   
   useEffect(() => {
     if (!user) {
@@ -47,7 +50,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
 
   // Fetch article (only if user is authenticated)
   const { data: article, isLoading: isLoadingArticle, error: articleError } = useQuery<ArticleWithAuthor>({
-    queryKey: ['/api/articles', articleId],
+    queryKey: [articleUrl],
     enabled: !!articleId && !!user,
   });
   
@@ -73,7 +76,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/articles'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/articles', articleId] });
+      queryClient.invalidateQueries({ queryKey: [articleUrl] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       
       toast({
