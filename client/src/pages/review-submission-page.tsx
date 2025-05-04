@@ -32,8 +32,10 @@ export default function ReviewSubmissionPage() {
   // Get article ID from URL
   const articleId = params.id;
 
+  console.log("Reviewing article ID:", articleId);
+
   // Fetch article
-  const { data: article, isLoading: isLoadingArticle } = useQuery<ArticleWithAuthor>({
+  const { data: article, isLoading: isLoadingArticle, error: articleError } = useQuery<ArticleWithAuthor>({
     queryKey: ['/api/articles', articleId],
     enabled: !!articleId,
   });
@@ -93,7 +95,20 @@ export default function ReviewSubmissionPage() {
             </Button>
           </div>
           
-          {isLoadingArticle ? (
+          {articleError ? (
+            <div className="bg-red-50 border border-red-200 rounded-md p-6 text-center">
+              <h2 className="text-xl font-medium text-red-700 mb-2">Error Loading Article</h2>
+              <p className="text-red-600">
+                {articleError instanceof Error ? articleError.message : "An unknown error occurred"}
+              </p>
+              <Button 
+                onClick={() => navigate('/')} 
+                className="mt-4 bg-red-600 hover:bg-red-700"
+              >
+                Return to Dashboard
+              </Button>
+            </div>
+          ) : isLoadingArticle ? (
             <div className="space-y-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
                 <div className="space-y-2">
