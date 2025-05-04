@@ -129,14 +129,25 @@ export default function DashboardPage() {
                   </div>
                 ))
               ) : filteredArticles.length > 0 ? (
-                filteredArticles.map((article) => (
-                  <ArticleCard 
-                    key={article.id} 
-                    article={article}
-                    onView={() => navigate(`/submissions/${article.id}`)}
-                    onEdit={() => navigate(`/submit?id=${article.id}`)}
-                  />
-                ))
+                filteredArticles.map((article) => {
+                  console.log("Dashboard rendering article:", {
+                    id: article.id,
+                    title: article.title,
+                    url: `/submissions/${article.id}`
+                  });
+                  return (
+                    <ArticleCard 
+                      key={article.id} 
+                      article={article}
+                      onView={() => {
+                        const url = `/submissions/${article.id}`;
+                        console.log(`Navigating to article ${article.id}: ${url}`);
+                        navigate(url);
+                      }}
+                      onEdit={() => navigate(`/submit?id=${article.id}`)}
+                    />
+                  );
+                })
               ) : (
                 <div className="p-8 text-center">
                   <p className="text-muted-foreground">

@@ -19,14 +19,12 @@ function Router() {
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/submit" component={SubmitStoryPage} />
       <ProtectedRoute path="/submit-story" component={SubmitStoryPage} />
-      {/* Use ProtectedRoute with route params for submissions with ID parameter */}
+      {/* Use direct Route with params for submissions ID, then protect inside the component */}
       <Route path="/submissions/:id">
-        {(params) => (
-          <ProtectedRoute 
-            path={`/submissions/${params.id}`} 
-            component={() => <ReviewSubmissionPage id={params.id} />}
-          />
-        )}
+        {(params) => {
+          console.log("Route captured ID parameter:", params.id);
+          return <ReviewSubmissionPage id={params.id} />;
+        }}
       </Route>
       <ProtectedRoute path="/admin" adminOnly component={AdminDashboardPage} />
       <Route component={NotFound} />

@@ -54,30 +54,11 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
   // Log article data when it changes
   useEffect(() => {
     if (article) {
-      console.log("Article data received:", article);
-      
-      // Inspect the actual content property of the article
-      console.log("Content type:", typeof article.content);
-      console.log("Content property exists:", 'content' in article);
-      console.log("Content is strictly equal to null:", article.content === null);
-      console.log("Content is strictly equal to undefined:", article.content === undefined);
-      console.log("Content is truthy:", !!article.content);
-      
-      // Try accessing content directly
-      try {
-        const contentStr = String(article.content || '');
-        console.log("Content as string length:", contentStr.length);
-        console.log("Content first 50 chars (escaped):", JSON.stringify(contentStr.substring(0, 50)));
-        
-        // Count non-empty paragraphs
-        const paragraphs = contentStr.split('\n').filter(p => p.trim().length > 0);
-        console.log("Non-empty paragraphs:", paragraphs.length);
-        if (paragraphs.length > 0) {
-          console.log("First paragraph (escaped):", JSON.stringify(paragraphs[0]));
-        }
-      } catch (err) {
-        console.error("Error processing content:", err);
-      }
+      console.log(`ReviewSubmissionPage: Article ${article.id} loaded:`, {
+        id: article.id,
+        title: article.title,
+        contentLength: article.content?.length || 0
+      });
     }
   }, [article]);
 
@@ -214,31 +195,24 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                         )}
                         
                         {(() => {
-                          // DIRECT ACCESS TO ORIGINAL ARTICLE DATA
-                          console.log("ORIGINAL RAW RESPONSE:", rawArticleResponse);
-                          
                           // Explicitly extract content safely from the article
                           let contentStr = "";
                           
-                          // Try several ways to extract the content
-                          if (article && typeof article === 'object') {
-                            if (article.content !== undefined) {
-                              contentStr = String(article.content);
-                            } else if (Array.isArray(rawArticleResponse) && 
-                                    rawArticleResponse[0] && 
-                                    rawArticleResponse[0].content) {
-                              contentStr = String(rawArticleResponse[0].content);
-                            }
+                          // Extract content directly from the article
+                          if (article && typeof article === 'object' && article.content !== undefined) {
+                            contentStr = String(article.content || '');
                           }
-                          
-                          // Log what we found
-                          console.log("EXTRACTED CONTENT:", contentStr.substring(0, 50));
                           
                           // Process content for display
                           const contentTrimmed = contentStr.trim();
                           const paragraphs = contentTrimmed.split('\n')
                             .map(p => p.trim())
                             .filter(p => p.length > 0);
+                          
+                          console.log(`Processing content for article ID ${articleId}`, { 
+                            contentLength: contentStr.length,
+                            paragraphCount: paragraphs.length
+                          });
                           
                           if (paragraphs.length === 0) {
                             return <p className="text-muted-foreground">No content available.</p>;
