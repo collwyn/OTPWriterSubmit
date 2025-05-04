@@ -55,10 +55,19 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
   useEffect(() => {
     if (article) {
       console.log("Article data received:", article);
-      console.log("Content available:", !!article.content);
+      
+      // Check content in detail
       if (article.content) {
-        console.log("Content length:", article.content.length);
-        console.log("Content preview:", article.content.substring(0, 30));
+        console.log("Raw content length:", article.content.length);
+        console.log("Trimmed content length:", article.content.trim().length);
+        console.log("Content has only whitespace:", article.content.trim().length === 0);
+        console.log("First 50 chars (escaped):", JSON.stringify(article.content.substring(0, 50)));
+        
+        // Count non-empty paragraphs
+        const paragraphs = article.content.split('\n').filter(p => p.trim().length > 0);
+        console.log("Non-empty paragraphs:", paragraphs.length);
+      } else {
+        console.log("Content is null or undefined");
       }
     }
   }, [article]);
@@ -186,10 +195,20 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                       )}
                       
                       <div className="prose max-w-none">
-                        {article.content && article.content.split('\n').map((paragraph, i) => (
-                          <p key={i} className="mb-4">{paragraph}</p>
-                        ))}
-                        {!article.content && <p className="text-muted-foreground">No content available.</p>}
+                        {/* Debug content length */}
+                        {process.env.NODE_ENV === 'development' && (
+                          <div className="mb-3 text-xs text-muted-foreground">
+                            Raw content length: {article.content ? article.content.length : 0}
+                          </div>
+                        )}
+                        
+                        {article.content && article.content.trim() ? (
+                          article.content.trim().split('\n').filter(para => para.trim()).map((paragraph, i) => (
+                            <p key={i} className="mb-4">{paragraph.trim()}</p>
+                          ))
+                        ) : (
+                          <p className="text-muted-foreground">No content available.</p>
+                        )}
                       </div>
                     </div>
                   </div>
