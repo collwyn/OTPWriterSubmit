@@ -29,7 +29,7 @@ A web application for writers to submit stories to "Our Time Press" newspaper. F
 
 ### Writer Accounts
 Created with proper password hashing:
-- Bgreen2075@aol.com
+- bgreen2075@aol.com
 - nayabaarindemedia@gmail.com
 - godsgrace55@hotmail.com
 - kazembebatts@gmail.com
