@@ -20,6 +20,7 @@ export interface IStorage {
   getArticlesByUserId(userId: number): Promise<Article[]>;
   getAllArticles(): Promise<Article[]>;
   updateArticle(id: number, article: UpdateArticle): Promise<Article | undefined>;
+  deleteArticle(id: number): Promise<void>;
   getArticleCountByStatus(userId?: number): Promise<{ [key: string]: number }>;
   
   // Session store
@@ -212,6 +213,10 @@ export class DatabaseStorage implements IStorage {
       createdAt: article.createdAt,
       updatedAt: article.updatedAt
     };
+  }
+
+  async deleteArticle(id: number): Promise<void> {
+    await db.delete(articles).where(eq(articles.id, id));
   }
 
   async getArticleCountByStatus(userId?: number): Promise<{ [key: string]: number }> {

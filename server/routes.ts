@@ -342,6 +342,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete article (admin only)
+  app.delete("/api/articles/:id", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    try {
+      const id = parseInt(req.params.id);
+      const article = await storage.getArticle(id);
+      
+      if (!article) {
+        return res.status(404).json({ message: "Article not found" });
+      }
+
+      // Delete associated image file if it exists
+      if (article.featuredImage) {
+        const fullPath = path.join(process.cwd(), "uploads", article.featuredImage);
+        if (fs.existsSync(fullPath)) {
+          try {
+            fs.unlinkSync(fullPath);
+          } catch (error) {
+            console.warn(`Failed to delete image file: ${article.featuredImage}`, error);
+          }
+        }
+      }
+
+      await storage.deleteArticle(id);
+      res.json({ message: "Article deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting article:", error);
+      res.status(500).json({ message: "Failed to delete article" });
+    }
+  });
+
   // Handle image serving
   app.get("/uploads/:filename", (req: Request, res: Response) => {
     const filename = req.params.filename;

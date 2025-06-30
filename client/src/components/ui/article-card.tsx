@@ -1,9 +1,21 @@
 import { Article } from "@shared/schema";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { CalendarDays, Clock, FileText, Eye, Edit, Download } from "lucide-react";
+import { CalendarDays, Clock, FileText, Eye, Edit, Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type ArticleCardProps = {
   article: Article;
