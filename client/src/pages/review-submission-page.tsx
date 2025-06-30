@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { Article, User } from "@shared/schema";
-import { ArrowLeft, Calendar, Clock, FileText, ThumbsUp, ThumbsDown, MessageSquare, Download } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, FileText, ThumbsUp, ThumbsDown, MessageSquare, Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +13,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type ArticleWithAuthor = Article & {
   author?: { 
@@ -89,6 +100,30 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
     onError: (error: Error) => {
       toast({
         title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete article mutation
+  const deleteArticleMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", `/api/articles/${articleId}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/articles'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      toast({
+        title: "Article deleted",
+        description: "The article has been permanently deleted.",
+      });
+      navigate('/');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete failed",
         description: error.message,
         variant: "destructive",
       });
@@ -368,6 +403,43 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                                 Request Revisions
                               </Button>
                             </div>
+                          </div>
+                          
+                          <Separator />
+                          
+                          {/* Delete Article Section */}
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-2">Danger Zone:</p>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="destructive"
+                                  className="flex items-center"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete Article
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Article</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to permanently delete "{article?.title}"? 
+                                    This action cannot be undone and will also delete all associated files.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteArticleMutation.mutate()}
+                                    className="bg-red-600 hover:bg-red-700"
+                                    disabled={deleteArticleMutation.isPending}
+                                  >
+                                    {deleteArticleMutation.isPending ? "Deleting..." : "Delete"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
                       </div>

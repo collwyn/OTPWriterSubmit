@@ -38,6 +38,11 @@ Created with proper password hashing:
 - lyndon.t2003@gmail.com
 
 ## Recent Changes
+- **2025-01-26**: Implemented admin delete functionality with real-time updates
+  - Added DELETE /api/articles/:id route with admin-only access
+  - Created delete mutations with automatic cache invalidation
+  - Added delete buttons to admin dashboard and review pages with confirmation dialogs
+  - Files are automatically cleaned up when articles are deleted
 - **2025-01-26**: Implemented article download functionality
   - Created zip packaging with article text and images
   - Added download buttons to article cards and detail pages

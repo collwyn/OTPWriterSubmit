@@ -374,6 +374,36 @@ export default function AdminDashboardPage() {
                                 }}>
                                   Reject
                                 </DropdownMenuItem>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem
+                                      onSelect={(e) => e.preventDefault()}
+                                      className="text-red-600 focus:text-red-600"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete Article
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Article</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to permanently delete "{article.title}"? 
+                                        This action cannot be undone and will also delete all associated files.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => deleteArticleMutation.mutate(article.id)}
+                                        className="bg-red-600 hover:bg-red-700"
+                                        disabled={deleteArticleMutation.isPending}
+                                      >
+                                        {deleteArticleMutation.isPending ? "Deleting..." : "Delete"}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
