@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { toast } from "@/hooks/use-toast";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { Article, User } from "@shared/schema";
-import { Eye, Edit, MoreVertical, Search, Clock, CheckCircle, UserPlus, Mail, Filter } from "lucide-react";
+import { Eye, Edit, MoreVertical, Search, Clock, CheckCircle, UserPlus, Mail, Filter, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,17 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type ArticleWithAuthor = Article & {
   author?: { 
@@ -58,6 +71,30 @@ export default function AdminDashboardPage() {
   // Fetch stats
   const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ["/api/stats"],
+  });
+
+  // Delete article mutation
+  const deleteArticleMutation = useMutation({
+    mutationFn: async (articleId: number) => {
+      const res = await apiRequest("DELETE", `/api/articles/${articleId}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      // Invalidate and refetch articles and stats
+      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Article deleted",
+        description: "The article has been permanently deleted.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Filter articles based on search and filters

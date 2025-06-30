@@ -21,9 +21,11 @@ type ArticleCardProps = {
   article: Article;
   onView?: () => void;
   onEdit?: () => void;
+  onDelete?: () => void;
 };
 
-export function ArticleCard({ article, onView, onEdit }: ArticleCardProps) {
+export function ArticleCard({ article, onView, onEdit, onDelete }: ArticleCardProps) {
+  const { user } = useAuth();
   // Function to handle downloading article
   const handleDownload = async () => {
     try {
@@ -124,6 +126,40 @@ export function ArticleCard({ article, onView, onEdit }: ArticleCardProps) {
               >
                 <Eye className="h-4 w-4" />
               </Button>
+            )}
+            
+            {/* Delete button - only for admins */}
+            {user?.isAdmin && onDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-muted-foreground hover:text-red-600 ml-2"
+                    title="Delete Article"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Article</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete "{article.title}"? This action cannot be undone.
+                      All associated files will also be permanently deleted.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={onDelete}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </div>
