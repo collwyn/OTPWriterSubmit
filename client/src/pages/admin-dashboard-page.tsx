@@ -78,10 +78,10 @@ export default function AdminDashboardPage() {
     queryKey: ["/api/stats"],
   });
 
-  // Fetch all users (for writers management)
+  // Fetch all users (for writers management and filtering)
   const { data: allUsers, isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
-    enabled: activeTab === "writers",
+    enabled: activeTab === "writers" || activeTab === "articles",
   });
 
   // Delete article mutation
@@ -122,8 +122,9 @@ export default function AdminDashboardPage() {
     // Status filter
     const matchesStatus = statusFilter === "all" || article.status === statusFilter;
     
-    // Writer filter
-    const matchesWriter = writerFilter === "all" || article.userId === writerFilter;
+    // Writer filter - ensure we're comparing the right types
+    const matchesWriter = writerFilter === "all" || 
+      (typeof writerFilter === "number" && article.userId === writerFilter);
     
     return matchesSearch && matchesCategory && matchesStatus && matchesWriter;
   }) : [];
