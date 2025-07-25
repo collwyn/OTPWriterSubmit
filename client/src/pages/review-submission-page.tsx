@@ -326,6 +326,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                             {article.category === 'sports' && 'Sports'}
                             {article.category === 'opinion' && 'Opinion'}
                             {article.category === 'lifestyle' && 'Lifestyle'}
+                            {article.category === 'newsletter' && 'Newsletter'}
                           </dd>
                         </div>
                         

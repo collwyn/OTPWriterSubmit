@@ -72,6 +72,7 @@ export default function DashboardPage() {
                   <SelectItem value="sports">Sports</SelectItem>
                   <SelectItem value="opinion">Opinion</SelectItem>
                   <SelectItem value="lifestyle">Lifestyle</SelectItem>
+                  <SelectItem value="newsletter">Newsletter</SelectItem>
                 </SelectContent>
               </Select>
               

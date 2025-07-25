@@ -38,6 +38,12 @@ Created with proper password hashing:
 - lyndon.t2003@gmail.com
 
 ## Recent Changes
+- **2025-01-26**: Enhanced admin dashboard with comprehensive features
+  - Added tab-based navigation (Articles, Writers, Profile, Settings)
+  - Activated admin profile and settings sections
+  - Created writers management interface showing all registered writers
+  - Added links to writers' articles and submission statistics
+  - Implemented newsletter category support across all interfaces
 - **2025-01-26**: Implemented admin delete functionality with real-time updates
   - Added DELETE /api/articles/:id route with admin-only access
   - Created delete mutations with automatic cache invalidation

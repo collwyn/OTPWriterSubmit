@@ -8,13 +8,15 @@ import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { Article, User } from "@shared/schema";
-import { Eye, Edit, MoreVertical, Search, Clock, CheckCircle, UserPlus, Mail, Filter, Trash2 } from "lucide-react";
+import { Eye, Edit, MoreVertical, Search, Clock, CheckCircle, UserPlus, Mail, Filter, Trash2, Users, Settings, UserCheck, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -59,9 +61,11 @@ type ActivityItem = {
 export default function AdminDashboardPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [writersSearchTerm, setWritersSearchTerm] = useState("");
 
   // Fetch all articles
   const { data: articles, isLoading: isLoadingArticles } = useQuery<ArticleWithAuthor[]>({
@@ -71,6 +75,12 @@ export default function AdminDashboardPage() {
   // Fetch stats
   const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ["/api/stats"],
+  });
+
+  // Fetch all users (for writers management)
+  const { data: allUsers, isLoading: isLoadingUsers } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+    enabled: activeTab === "writers",
   });
 
   // Delete article mutation
@@ -112,6 +122,14 @@ export default function AdminDashboardPage() {
     const matchesStatus = statusFilter === "all" || article.status === statusFilter;
     
     return matchesSearch && matchesCategory && matchesStatus;
+  }) : [];
+
+  // Filter users for writers management tab
+  const filteredUsers = allUsers ? allUsers.filter(writer => {
+    const matchesSearch = !writersSearchTerm || 
+      writer.username.toLowerCase().includes(writersSearchTerm.toLowerCase()) ||
+      writer.email.toLowerCase().includes(writersSearchTerm.toLowerCase());
+    return matchesSearch && !writer.isAdmin; // Exclude admin users
   }) : [];
 
   // Mock recent activity data - in a real app this would come from an API
@@ -160,7 +178,28 @@ export default function AdminDashboardPage() {
             <p className="text-muted-foreground">Manage all writer submissions and publications</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Articles
+              </TabsTrigger>
+              <TabsTrigger value="writers" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Writers
+              </TabsTrigger>
+              <TabsTrigger value="profile" className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4" />
+                Profile
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Settings
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="dashboard" className="space-y-6 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             {isLoadingStats ? (
               Array(4).fill(0).map((_, i) => (
                 <Skeleton key={i} className="h-24 w-full" />
@@ -215,6 +254,7 @@ export default function AdminDashboardPage() {
                   <SelectItem value="sports">Sports</SelectItem>
                   <SelectItem value="opinion">Opinion</SelectItem>
                   <SelectItem value="lifestyle">Lifestyle</SelectItem>
+                  <SelectItem value="newsletter">Newsletter</SelectItem>
                 </SelectContent>
               </Select>
               
@@ -327,6 +367,7 @@ export default function AdminDashboardPage() {
                             {article.category === 'sports' && 'Sports'}
                             {article.category === 'opinion' && 'Opinion'}
                             {article.category === 'lifestyle' && 'Lifestyle'}
+                            {article.category === 'newsletter' && 'Newsletter'}
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-neutral-dark">
@@ -435,44 +476,279 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             )}
-          </div>
+              </div>
 
-          <div className="mt-10">
-            <h2 className="text-xl font-display font-bold text-neutral-dark mb-6">Recent Activity</h2>
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="divide-y divide-neutral-light">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="p-4 hover:bg-neutral-lightest">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-primary bg-opacity-10 flex items-center justify-center text-primary">
-                          {activity.type === 'submission' && <Mail className="h-5 w-5" />}
-                          {activity.type === 'approval' && <CheckCircle className="h-5 w-5" />}
-                          {activity.type === 'revision' && <Edit className="h-5 w-5" />}
-                          {activity.type === 'registration' && <UserPlus className="h-5 w-5" />}
+              <div className="mt-10">
+                <h2 className="text-xl font-display font-bold text-neutral-dark mb-6">Recent Activity</h2>
+                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                  <div className="divide-y divide-neutral-light">
+                    {recentActivity.map((activity) => (
+                      <div key={activity.id} className="p-4 hover:bg-neutral-lightest">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-primary bg-opacity-10 flex items-center justify-center text-primary">
+                              {activity.type === 'submission' && <Mail className="h-5 w-5" />}
+                              {activity.type === 'approval' && <CheckCircle className="h-5 w-5" />}
+                              {activity.type === 'revision' && <Edit className="h-5 w-5" />}
+                              {activity.type === 'registration' && <UserPlus className="h-5 w-5" />}
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-neutral-dark">{activity.content}</div>
+                            {activity.article && (
+                              <div className="text-sm text-muted-foreground mt-1">{activity.article.title}</div>
+                            )}
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {activity.date.toLocaleString()}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-neutral-dark">{activity.content}</div>
-                        {activity.article && (
-                          <div className="text-sm text-muted-foreground mt-1">{activity.article.title}</div>
-                        )}
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {activity.date.toLocaleString()}
-                        </div>
+                    ))}
+                  </div>
+                  
+                  <div className="px-4 py-3 bg-neutral-lightest border-t border-neutral-light text-center">
+                    <Button variant="link" className="text-primary hover:text-primary/80">
+                      View All Activity
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Writers Management Tab */}
+            <TabsContent value="writers" className="space-y-6 mt-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-neutral-dark">Writers Management</h3>
+                  <p className="text-sm text-muted-foreground">View all registered writers and their submissions</p>
+                </div>
+                <div className="relative w-full sm:w-auto mt-4 sm:mt-0">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search writers..."
+                    className="pl-9 w-full sm:w-64 border hover:border-primary"
+                    value={writersSearchTerm}
+                    onChange={(e) => setWritersSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-neutral-lightest">
+                      <TableRow>
+                        <TableHead>Writer</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Articles Count</TableHead>
+                        <TableHead>Latest Submission</TableHead>
+                        <TableHead>Status Overview</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoadingUsers ? (
+                        Array(5).fill(0).map((_, i) => (
+                          <TableRow key={i}>
+                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                          </TableRow>
+                        ))
+                      ) : filteredUsers.length > 0 ? (
+                        filteredUsers.map((writer) => {
+                          const writerArticles = articles?.filter(article => article.userId === writer.id) || [];
+                          const latestArticle = writerArticles.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                          const statusCounts = writerArticles.reduce((acc, article) => {
+                            acc[article.status] = (acc[article.status] || 0) + 1;
+                            return acc;
+                          }, {} as Record<string, number>);
+
+                          return (
+                            <TableRow key={writer.id} className="hover:bg-neutral-lightest">
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium text-neutral-dark">{writer.username}</div>
+                                  <div className="text-xs text-muted-foreground">ID: {writer.id}</div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm text-neutral-dark">{writer.email}</div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline">{writerArticles.length}</Badge>
+                                  {writerArticles.length > 0 && (
+                                    <Button
+                                      variant="link"
+                                      size="sm"
+                                      className="text-xs text-primary p-0 h-auto"
+                                      onClick={() => navigate(`/?writer=${writer.id}`)}
+                                    >
+                                      View All
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {latestArticle ? (
+                                  <div>
+                                    <Button
+                                      variant="link"
+                                      className="text-sm text-primary p-0 h-auto font-normal"
+                                      onClick={() => navigate(`/submissions/${latestArticle.id}`)}
+                                    >
+                                      {latestArticle.title.length > 30 
+                                        ? `${latestArticle.title.substring(0, 30)}...`
+                                        : latestArticle.title
+                                      }
+                                    </Button>
+                                    <div className="text-xs text-muted-foreground">
+                                      {new Date(latestArticle.createdAt).toLocaleDateString()}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">No submissions</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {statusCounts.approved > 0 && (
+                                    <Badge variant="default" className="bg-green-100 text-green-800">
+                                      {statusCounts.approved} Approved
+                                    </Badge>
+                                  )}
+                                  {statusCounts.underReview > 0 && (
+                                    <Badge variant="default" className="bg-yellow-100 text-yellow-800">
+                                      {statusCounts.underReview} Review
+                                    </Badge>
+                                  )}
+                                  {statusCounts.rejected > 0 && (
+                                    <Badge variant="default" className="bg-red-100 text-red-800">
+                                      {statusCounts.rejected} Rejected
+                                    </Badge>
+                                  )}
+                                  {statusCounts.draft > 0 && (
+                                    <Badge variant="outline">
+                                      {statusCounts.draft} Draft
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => navigate(`/?writer=${writer.id}`)}>
+                                      View Articles
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                      Send Message
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8">
+                            <p className="text-muted-foreground">
+                              {allUsers && allUsers.length > 0 
+                                ? "No writers match your search"
+                                : "No writers registered yet"}
+                            </p>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Profile Tab */}
+            <TabsContent value="profile" className="space-y-6 mt-6">
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-neutral-dark mb-4">Admin Profile</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-neutral-dark">Username</label>
+                      <div className="mt-1 text-sm text-muted-foreground">{user?.username}</div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-neutral-dark">Email</label>
+                      <div className="mt-1 text-sm text-muted-foreground">{user?.email}</div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-neutral-dark">Role</label>
+                      <div className="mt-1">
+                        <Badge variant="default" className="bg-primary">Administrator</Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-neutral-dark">Account Status</label>
+                      <div className="mt-1">
+                        <Badge variant="default" className="bg-green-600">Active</Badge>
                       </div>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-              
-              <div className="px-4 py-3 bg-neutral-lightest border-t border-neutral-light text-center">
-                <Button variant="link" className="text-primary hover:text-primary/80">
-                  View All Activity
-                </Button>
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="space-y-6 mt-6">
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-neutral-dark mb-4">Admin Settings</h3>
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-medium text-neutral-dark mb-2">Email Notifications</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-neutral-dark">New article submissions</span>
+                        <Badge variant="default" className="bg-green-600">Enabled</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-neutral-dark">Writer registrations</span>
+                        <Badge variant="default" className="bg-green-600">Enabled</Badge>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium text-neutral-dark mb-2">System Information</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-neutral-dark">Total Writers</span>
+                        <span className="text-sm text-muted-foreground">{allUsers?.filter(u => !u.isAdmin).length || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-neutral-dark">Total Articles</span>
+                        <span className="text-sm text-muted-foreground">{articles?.length || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-neutral-dark">Categories Available</span>
+                        <span className="text-sm text-muted-foreground">8 (including Newsletter)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
       
