@@ -393,17 +393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Handle image serving
-  app.get("/uploads/:filename", (req: Request, res: Response) => {
-    const filename = req.params.filename;
-    const filePath = path.join(process.cwd(), 'uploads', filename);
-    
-    if (fs.existsSync(filePath)) {
-      res.sendFile(filePath);
-    } else {
-      res.status(404).json({ message: "Image not found" });
-    }
-  });
+
   
   // Debug route - only for development
   if (process.env.NODE_ENV === 'development') {
