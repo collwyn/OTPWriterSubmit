@@ -65,6 +65,7 @@ export default function AdminDashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [writerFilter, setWriterFilter] = useState<number | "all">("all");
   const [writersSearchTerm, setWritersSearchTerm] = useState("");
 
   // Fetch all articles
@@ -121,7 +122,10 @@ export default function AdminDashboardPage() {
     // Status filter
     const matchesStatus = statusFilter === "all" || article.status === statusFilter;
     
-    return matchesSearch && matchesCategory && matchesStatus;
+    // Writer filter
+    const matchesWriter = writerFilter === "all" || article.userId === writerFilter;
+    
+    return matchesSearch && matchesCategory && matchesStatus && matchesWriter;
   }) : [];
 
   // Filter users for writers management tab
@@ -240,7 +244,7 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
-            <div className="flex space-x-2 mb-4 sm:mb-0">
+            <div className="flex flex-wrap gap-2 mb-4 sm:mb-0">
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="bg-white border hover:border-primary w-36">
                   <SelectValue placeholder="Category" />
@@ -268,6 +272,20 @@ export default function AdminDashboardPage() {
                   <SelectItem value="underReview">Under Review</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={writerFilter.toString()} onValueChange={(value) => setWriterFilter(value === "all" ? "all" : parseInt(value))}>
+                <SelectTrigger className="bg-white border hover:border-primary w-36">
+                  <SelectValue placeholder="Writer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Writers</SelectItem>
+                  {allUsers?.filter(user => !user.isAdmin).map(writer => (
+                    <SelectItem key={writer.id} value={writer.id.toString()}>
+                      {writer.username}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -588,7 +606,13 @@ export default function AdminDashboardPage() {
                                       variant="link"
                                       size="sm"
                                       className="text-xs text-primary p-0 h-auto"
-                                      onClick={() => navigate(`/?writer=${writer.id}`)}
+                                      onClick={() => {
+                                        setActiveTab("articles");
+                                        setWriterFilter(writer.id);
+                                        setCategoryFilter("all");
+                                        setStatusFilter("all");
+                                        setSearchTerm("");
+                                      }}
                                     >
                                       View All
                                     </Button>
@@ -649,7 +673,13 @@ export default function AdminDashboardPage() {
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <DropdownMenuItem onClick={() => navigate(`/?writer=${writer.id}`)}>
+                                    <DropdownMenuItem onClick={() => {
+                                      setActiveTab("articles");
+                                      setWriterFilter(writer.id);
+                                      setCategoryFilter("all");
+                                      setStatusFilter("all");
+                                      setSearchTerm("");
+                                    }}>
                                       View Articles
                                     </DropdownMenuItem>
                                     <DropdownMenuItem>
