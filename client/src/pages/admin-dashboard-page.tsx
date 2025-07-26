@@ -126,8 +126,30 @@ export default function AdminDashboardPage() {
     const matchesWriter = writerFilter === "all" || 
       (typeof writerFilter === "number" && article.userId === writerFilter);
     
+    // Debug logging
+    console.log("Filter debug:", {
+      articleId: article.id,
+      articleTitle: article.title,
+      articleUserId: article.userId,
+      writerFilter,
+      matchesSearch,
+      matchesCategory,
+      matchesStatus,
+      matchesWriter,
+      finalResult: matchesSearch && matchesCategory && matchesStatus && matchesWriter
+    });
+    
     return matchesSearch && matchesCategory && matchesStatus && matchesWriter;
   }) : [];
+
+  console.log("Filtered articles result:", {
+    totalArticles: articles?.length || 0,
+    filteredCount: filteredArticles.length,
+    writerFilter,
+    categoryFilter,
+    statusFilter,
+    searchTerm
+  });
 
   // Filter users for writers management tab
   const filteredUsers = allUsers ? allUsers.filter(writer => {
