@@ -110,14 +110,10 @@ export default function AdminDashboardPage() {
 
   // Filter articles based on search and filters
   const filteredArticles = articles ? articles.filter(article => {
-    // Skip articles with empty titles (drafts with no content)
-    if (!article.title || article.title.trim() === "") {
-      return false;
-    }
-    
-    // Search term filter
+    // Search term filter - for articles with empty titles, search in author info only
+    const articleTitle = article.title || "Untitled Article";
     const matchesSearch = !searchTerm || 
-      article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      articleTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (article.author?.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (article.author?.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -131,8 +127,31 @@ export default function AdminDashboardPage() {
     const matchesWriter = writerFilter === "all" || 
       (typeof writerFilter === "number" && article.userId === writerFilter);
     
+    // Debug logging for troubleshooting
+    console.log("Filter debug:", {
+      articleId: article.id,
+      articleTitle: articleTitle,
+      articleUserId: article.userId,
+      writerFilter,
+      matchesSearch,
+      matchesCategory,
+      matchesStatus,
+      matchesWriter,
+      finalResult: matchesSearch && matchesCategory && matchesStatus && matchesWriter
+    });
+    
     return matchesSearch && matchesCategory && matchesStatus && matchesWriter;
   }) : [];
+
+  // Debug log the final filtered results
+  console.log("Filtered articles result:", {
+    totalArticles: articles?.length || 0,
+    filteredCount: filteredArticles.length,
+    writerFilter,
+    categoryFilter,
+    statusFilter,
+    searchTerm
+  });
 
   // Filter users for writers management tab
   const filteredUsers = allUsers ? allUsers.filter(writer => {
@@ -366,7 +385,7 @@ export default function AdminDashboardPage() {
                             </div>
                             <div className="ml-4">
                               <div className="text-sm font-medium text-neutral-dark line-clamp-1">
-                                {article.title}
+                                {article.title || "Untitled Article"}
                               </div>
                               <div className="text-xs text-muted-foreground">
                                 {article.wordCount} words
@@ -613,7 +632,8 @@ export default function AdminDashboardPage() {
                                       size="sm"
                                       className="text-xs text-primary p-0 h-auto"
                                       onClick={() => {
-                                        setActiveTab("articles");
+                                        console.log(`Setting writer filter to ${writer.id} for ${writer.username}`);
+                                        setActiveTab("dashboard");
                                         setWriterFilter(writer.id);
                                         setCategoryFilter("all");
                                         setStatusFilter("all");
@@ -680,7 +700,8 @@ export default function AdminDashboardPage() {
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                     <DropdownMenuItem onClick={() => {
-                                      setActiveTab("articles");
+                                      console.log(`Setting writer filter to ${writer.id} for ${writer.username}`);
+                                      setActiveTab("dashboard");
                                       setWriterFilter(writer.id);
                                       setCategoryFilter("all");
                                       setStatusFilter("all");
