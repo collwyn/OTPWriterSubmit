@@ -43,15 +43,15 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
   const params = useParams();
   const { toast } = useToast();
   const [feedback, setFeedback] = useState("");
-  
+
   // Get article ID from props or URL params
   const articleId = propId || params.id;
-  
+
   console.log(`ReviewSubmissionPage: Path ${location}, Attempting to load article ID:`, articleId);
-  
+
   // We need to ensure we're making a direct request to the server
   const articleUrl = `/api/articles/${articleId}`;
-  
+
   useEffect(() => {
     if (!user) {
       // If not authenticated, redirect to login
@@ -64,7 +64,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
     queryKey: [articleUrl],
     enabled: !!articleId && !!user,
   });
-  
+
   // Log article data when it changes
   useEffect(() => {
     if (article) {
@@ -89,12 +89,12 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
       queryClient.invalidateQueries({ queryKey: ['/api/articles'] });
       queryClient.invalidateQueries({ queryKey: [articleUrl] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
-      
+
       toast({
         title: "Article status updated",
         description: "The article status has been successfully updated.",
       });
-      
+
       navigate('/');
     },
     onError: (error: Error) => {
@@ -137,13 +137,13 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
       feedback: feedback.trim() ? feedback : undefined 
     });
   };
-  
+
   // Function to handle downloading article
   const handleDownload = async () => {
     try {
       // Start download by opening a new window/tab with the download URL
       window.open(`/api/articles/${articleId}/download`, '_blank');
-      
+
       toast({
         title: "Download started",
         description: "Your download should begin automatically",
@@ -161,7 +161,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
   return (
     <div className="min-h-screen flex flex-col bg-neutral-lightest">
       <Header />
-      
+
       <main className="flex-grow">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
@@ -174,7 +174,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
               <span>Back to Dashboard</span>
             </Button>
           </div>
-          
+
           {articleError ? (
             <div className="bg-red-50 border border-red-200 rounded-md p-6 text-center">
               <h2 className="text-xl font-medium text-red-700 mb-2">Error Loading Article</h2>
@@ -197,7 +197,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                 </div>
                 <Skeleton className="h-8 w-32" />
               </div>
-              
+
               <Skeleton className="h-48 w-full" />
               <Skeleton className="h-96 w-full" />
             </div>
@@ -221,27 +221,48 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                     </span>
                   </div>
                 </div>
-                
+
                 <StatusBadge status={article.status} large />
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-2">
                   <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                     <div className="p-6">
                       <h3 className="font-medium text-lg mb-4">Article Content</h3>
-                      
-                      {article.featuredImage && (
-                        <div className="mb-6">
+
+                  {((article.images && JSON.parse(article.images).length > 0) || article.featuredImage) && (
+                    <div className="mt-6">
+                      <h4 className="text-sm font-medium text-neutral-dark mb-3">
+                        Images {article.images && `(${JSON.parse(article.images).length})`}
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {article.images ? (
+                          JSON.parse(article.images).map((image: string, index: number) => (
+                            <div key={index} className="relative">
+                              <img 
+                                src={`/uploads/${image}`} 
+                                alt={`Image ${index + 1}`} 
+                                className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light"
+                              />
+                              {index === 0 && (
+                                <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">
+                                  Featured
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : article.featuredImage ? (
                           <img 
                             src={`/uploads/${article.featuredImage}`} 
-                            alt="Featured" 
-                            className="w-full h-64 object-cover rounded-md mb-2" 
+                            alt="Featured image" 
+                            className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light"
                           />
-                          <p className="text-xs text-muted-foreground">Featured image</p>
-                        </div>
-                      )}
-                      
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
+
                       <div className="prose max-w-none">
                         {/* Debug info */}
                         {process.env.NODE_ENV === 'development' && (
@@ -251,31 +272,31 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                             Content length: {String(article.content || '').length}
                           </div>
                         )}
-                        
+
                         {(() => {
                           // Explicitly extract content safely from the article
                           let contentStr = "";
-                          
+
                           // Extract content directly from the article
                           if (article && typeof article === 'object' && article.content !== undefined) {
                             contentStr = String(article.content || '');
                           }
-                          
+
                           // Process content for display
                           const contentTrimmed = contentStr.trim();
                           const paragraphs = contentTrimmed.split('\n')
                             .map(p => p.trim())
                             .filter(p => p.length > 0);
-                          
+
                           console.log(`Processing content for article ID ${articleId}`, { 
                             contentLength: contentStr.length,
                             paragraphCount: paragraphs.length
                           });
-                          
+
                           if (paragraphs.length === 0) {
                             return <p className="text-muted-foreground">No content available.</p>;
                           }
-                          
+
                           return paragraphs.map((paragraph, i) => (
                             <p key={i} className="mb-4">{paragraph}</p>
                           ));
@@ -284,12 +305,12 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-6">
                   <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                     <div className="p-6">
                       <h3 className="font-medium text-lg mb-4">Article Details</h3>
-                      
+
                       {/* Download button for approved articles */}
                       {article.status === "approved" && (
                         <div className="mb-4">
@@ -302,7 +323,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                           </Button>
                         </div>
                       )}
-                      
+
                       <dl className="space-y-4">
                         <div>
                           <dt className="text-sm text-muted-foreground">Author</dt>
@@ -315,7 +336,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                             </dd>
                           )}
                         </div>
-                        
+
                         <div>
                           <dt className="text-sm text-muted-foreground">Category</dt>
                           <dd className="text-neutral-dark mt-1">
@@ -329,7 +350,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                             {article.category === 'newsletter' && 'Newsletter'}
                           </dd>
                         </div>
-                        
+
                         <div>
                           <dt className="text-sm text-muted-foreground">Target Audience</dt>
                           <dd className="text-neutral-dark mt-1">
@@ -340,7 +361,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                             {!article.targetAudience && 'Not specified'}
                           </dd>
                         </div>
-                        
+
                         {article.keywords && article.keywords.trim() && (
                           <div>
                             <dt className="text-sm text-muted-foreground">Keywords</dt>
@@ -359,12 +380,12 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                       </dl>
                     </div>
                   </div>
-                  
+
                   {user?.isAdmin && (
                     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                       <div className="p-6">
                         <h3 className="font-medium text-lg mb-4">Admin Actions</h3>
-                        
+
                         <div className="space-y-4">
                           <Textarea
                             placeholder="Add feedback or notes for the writer..."
@@ -373,7 +394,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                             className="resize-none"
                             rows={4}
                           />
-                          
+
                           <div>
                             <p className="text-sm text-muted-foreground mb-2">Change article status:</p>
                             <div className="flex flex-col sm:flex-row gap-3">
@@ -385,7 +406,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                                 <ThumbsUp className="mr-2 h-4 w-4" />
                                 Approve
                               </Button>
-                              
+
                               <Button 
                                 onClick={() => handleUpdateStatus('rejected')}
                                 className="bg-red-600 hover:bg-red-700 flex items-center"
@@ -394,7 +415,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                                 <ThumbsDown className="mr-2 h-4 w-4" />
                                 Reject
                               </Button>
-                              
+
                               <Button 
                                 onClick={() => handleUpdateStatus('needsRevision')}
                                 className="bg-blue-600 hover:bg-blue-700 flex items-center"
@@ -405,9 +426,9 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                               </Button>
                             </div>
                           </div>
-                          
+
                           <Separator />
-                          
+
                           {/* Delete Article Section */}
                           <div>
                             <p className="text-sm text-muted-foreground mb-2">Danger Zone:</p>
@@ -465,7 +486,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
           )}
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

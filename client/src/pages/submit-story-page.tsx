@@ -23,7 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 // Extended schema with file validation
 const extendedSchema = insertArticleSchema.extend({
-  featuredImageFile: z.any().optional(),
+  imageFiles: z.any().optional(),
 });
 
 type FormValues = z.infer<typeof extendedSchema>;
@@ -35,7 +35,8 @@ export default function SubmitStoryPage() {
   const { toast } = useToast();
   const [step, setStep] = useState<number>(1);
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [previewImageUrls, setPreviewImageUrls] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Get article ID from URL if editing
@@ -51,9 +52,18 @@ export default function SubmitStoryPage() {
     if (articleId && editArticle) {
       setIsEditing(true);
       
-      // If article has a featured image, show preview
-      if (editArticle.featuredImage) {
-        setPreviewImageUrl(`/uploads/${editArticle.featuredImage}`);
+      // If article has images, show previews
+      if (editArticle.images) {
+        try {
+          const imagesList: string[] = JSON.parse(editArticle.images);
+          const imageUrls = imagesList.map(img => `/uploads/${img}`);
+          setPreviewImageUrls(imageUrls);
+        } catch (error) {
+          console.error('Error parsing images:', error);
+        }
+      } else if (editArticle.featuredImage) {
+        // Backward compatibility for single featured image
+        setPreviewImageUrls([`/uploads/${editArticle.featuredImage}`]);
       }
       
       // Reset form with article data
@@ -80,43 +90,79 @@ export default function SubmitStoryPage() {
       keywords: '',
       targetAudience: 'general',
       status: 'draft',
-      featuredImageFile: undefined,
+      imageFiles: undefined,
     },
   });
 
-  // Handle file selection
+  // Handle multiple file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) {
       return;
     }
     
-    // Validate file type
-    if (!['image/jpeg', 'image/jpg'].includes(file.type)) {
+    // Check if adding these files would exceed the limit
+    const totalFiles = selectedFiles.length + files.length;
+    if (totalFiles > 10) {
       toast({
-        title: "Invalid file type",
-        description: "Please upload a JPG image only",
+        title: "Too many files",
+        description: `You can upload a maximum of 10 images. You have ${selectedFiles.length} and are trying to add ${files.length} more.`,
         variant: "destructive",
       });
       return;
     }
     
-    // Validate file size (4MB)
-    if (file.size > 4 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Image size should not exceed 4MB",
-        variant: "destructive",
-      });
-      return;
+    // Validate each file
+    const validFiles: File[] = [];
+    const invalidFiles: string[] = [];
+    
+    for (const file of files) {
+      // Validate file type
+      if (!['image/jpeg', 'image/jpg'].includes(file.type)) {
+        invalidFiles.push(`${file.name} (invalid type)`);
+        continue;
+      }
+      
+      // Validate file size (4MB)
+      if (file.size > 4 * 1024 * 1024) {
+        invalidFiles.push(`${file.name} (too large)`);
+        continue;
+      }
+      
+      validFiles.push(file);
     }
     
-    // Set form value
-    form.setValue('featuredImageFile', file);
+    // Show error for invalid files
+    if (invalidFiles.length > 0) {
+      toast({
+        title: "Some files were rejected",
+        description: `Invalid files: ${invalidFiles.join(', ')}. Only JPG images under 4MB are allowed.`,
+        variant: "destructive",
+      });
+    }
     
-    // Generate preview URL
-    const previewUrl = URL.createObjectURL(file);
-    setPreviewImageUrl(previewUrl);
+    if (validFiles.length > 0) {
+      // Add valid files to existing selection
+      const newSelectedFiles = [...selectedFiles, ...validFiles];
+      setSelectedFiles(newSelectedFiles);
+      
+      // Set form value
+      form.setValue('imageFiles', newSelectedFiles);
+      
+      // Generate preview URLs for new files
+      const newPreviewUrls = validFiles.map(file => URL.createObjectURL(file));
+      setPreviewImageUrls(prev => [...prev, ...newPreviewUrls]);
+    }
+  };
+
+  // Remove image from selection
+  const removeImage = (index: number) => {
+    const newSelectedFiles = selectedFiles.filter((_, i) => i !== index);
+    const newPreviewUrls = previewImageUrls.filter((_, i) => i !== index);
+    
+    setSelectedFiles(newSelectedFiles);
+    setPreviewImageUrls(newPreviewUrls);
+    form.setValue('imageFiles', newSelectedFiles.length > 0 ? newSelectedFiles : undefined);
   };
 
   // Form submission
@@ -126,14 +172,16 @@ export default function SubmitStoryPage() {
       
       // Add text data
       Object.keys(values).forEach(key => {
-        if (key !== 'featuredImageFile' && values[key as keyof FormValues] !== undefined) {
+        if (key !== 'imageFiles' && values[key as keyof FormValues] !== undefined) {
           formData.append(key, values[key as keyof FormValues] as string);
         }
       });
       
-      // Add featured image if available
-      if (values.featuredImageFile) {
-        formData.append('featuredImage', values.featuredImageFile as File);
+      // Add images if available
+      if (values.imageFiles && Array.isArray(values.imageFiles)) {
+        values.imageFiles.forEach((file: File) => {
+          formData.append('images', file);
+        });
       }
       
       // Call API
@@ -341,64 +389,70 @@ export default function SubmitStoryPage() {
             </div>
             
             <FormItem>
-              <FormLabel>Featured Image <span className="text-secondary">*</span></FormLabel>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-neutral-light border-dashed rounded-md">
-                {previewImageUrl ? (
-                  <div className="text-center">
-                    <img 
-                      src={previewImageUrl} 
-                      alt="Preview" 
-                      className="mx-auto h-32 object-cover mb-4" 
-                    />
-                    <div className="flex justify-center gap-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setPreviewImageUrl(null);
-                          form.setValue('featuredImageFile', undefined);
-                        }}
-                      >
-                        Remove
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        Change Image
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1 text-center">
-                    <Image className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <div className="flex text-sm text-muted-foreground">
-                      <label
-                        htmlFor="file-upload"
-                        className="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary/80 focus-within:outline-none"
-                      >
-                        <span>Upload a file</span>
-                        <input
-                          id="file-upload"
-                          name="file-upload"
-                          type="file"
-                          className="sr-only"
-                          ref={fileInputRef}
-                          onChange={handleFileChange}
-                          accept=".jpg,.jpeg"
+              <FormLabel>Images (up to 10) <span className="text-secondary">*</span></FormLabel>
+              <div className="space-y-4">
+                {previewImageUrls.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {previewImageUrls.map((url, index) => (
+                      <div key={index} className="relative group border border-neutral-light rounded-md overflow-hidden">
+                        <img 
+                          src={url} 
+                          alt={`Preview ${index + 1}`} 
+                          className="w-full h-24 object-cover" 
                         />
-                      </label>
-                      <p className="pl-1">or drag and drop</p>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeImage(index)}
+                        >
+                          ×
+                        </Button>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 text-center">
+                          {index + 1} of {previewImageUrls.length}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {previewImageUrls.length < 10 && (
+                  <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-neutral-light border-dashed rounded-md">
+                    <div className="space-y-1 text-center">
+                      <Image className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <div className="flex text-sm text-muted-foreground">
+                        <label
+                          htmlFor="file-upload"
+                          className="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary/80 focus-within:outline-none"
+                        >
+                          <span>Upload images</span>
+                          <input
+                            id="file-upload"
+                            name="file-upload"
+                            type="file"
+                            multiple
+                            className="sr-only"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept=".jpg,.jpeg"
+                          />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        JPG only, up to 4MB each, maximum 10 images
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Current: {previewImageUrls.length}/10 images
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      JPG only, up to 4MB
-                    </p>
                   </div>
                 )}
               </div>
-              {form.formState.errors.featuredImageFile && (
+              {form.formState.errors.imageFiles && (
                 <p className="text-destructive text-sm mt-1">
-                  {form.formState.errors.featuredImageFile.message as string}
+                  {form.formState.errors.imageFiles.message as string}
                 </p>
               )}
             </FormItem>
@@ -512,25 +566,27 @@ export default function SubmitStoryPage() {
                 </Button>
               </div>
               <div className="p-4">
-                <h4 className="text-sm font-medium text-neutral-dark mb-3">Featured Image</h4>
-                {previewImageUrl ? (
-                  <div className="border border-neutral-light rounded-md overflow-hidden max-w-sm">
-                    <img src={previewImageUrl} alt="Featured" className="w-full h-48 object-cover" />
-                    <div className="p-3">
-                      <p className="text-sm text-neutral-dark font-medium truncate">
-                        {isEditing && !form.getValues('featuredImageFile') 
-                          ? editArticle?.featuredImage 
-                          : (form.getValues('featuredImageFile') as File)?.name || 'Image'}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {isEditing && !form.getValues('featuredImageFile')
-                          ? 'Already uploaded'
-                          : `${((form.getValues('featuredImageFile') as File)?.size / (1024 * 1024)).toFixed(1)} MB`}
-                      </p>
-                    </div>
+                <h4 className="text-sm font-medium text-neutral-dark mb-3">Images ({previewImageUrls.length}/10)</h4>
+                {previewImageUrls.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {previewImageUrls.map((url, index) => (
+                      <div key={index} className="border border-neutral-light rounded-md overflow-hidden">
+                        <img src={url} alt={`Image ${index + 1}`} className="w-full h-24 object-cover" />
+                        <div className="p-2">
+                          <p className="text-xs text-neutral-dark font-medium truncate">
+                            {isEditing && selectedFiles.length === 0
+                              ? `Image ${index + 1}`
+                              : selectedFiles[index]?.name || `Image ${index + 1}`}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {index === 0 && '(Featured)'}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No featured image selected.</p>
+                  <p className="text-sm text-muted-foreground">No images selected.</p>
                 )}
                 
                 <h4 className="text-sm font-medium text-neutral-dark mt-6 mb-3">Dropbox Integration</h4>

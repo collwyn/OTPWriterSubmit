@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(
     "/api/articles",
-    upload.single("featuredImage"),
+    upload.array("images", 10), // Accept up to 10 images
     handleUploadError,
     validateRequest({ body: insertArticleSchema }),
     async (req: Request, res: Response) => {
@@ -170,21 +170,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ message: "Unauthorized" });
         }
 
-        // Process the uploaded file if exists
+        // Process uploaded files if they exist
         let featuredImage = null;
-        if (req.file) {
+        let images: string[] = [];
+        
+        if (req.files && Array.isArray(req.files)) {
           // Create Dropbox folder for user if needed
           await createUserFolder(req.user.id);
           
-          // Upload to Dropbox if integration is available
-          const dropboxLink = await uploadToDropbox(
-            req.file.path,
-            req.user.id,
-            req.file.filename
-          );
+          // Process each uploaded file
+          for (const file of req.files) {
+            // Upload to Dropbox if integration is available
+            const dropboxLink = await uploadToDropbox(
+              file.path,
+              req.user.id,
+              file.filename
+            );
+            
+            images.push(file.filename);
+          }
           
-          // Keep local path for now
-          featuredImage = req.file.filename;
+          // Set the first image as featured image for backward compatibility
+          if (images.length > 0) {
+            featuredImage = images[0];
+          }
         }
 
         // Calculate word count if content exists
@@ -195,6 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const newArticle = await storage.createArticle(req.user.id, {
           ...req.body,
           featuredImage,
+          images: images.length > 0 ? JSON.stringify(images) : null,
           wordCount
         });
 
@@ -221,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch(
     "/api/articles/:id",
-    upload.single("featuredImage"),
+    upload.array("images", 10), // Accept up to 10 images
     handleUploadError,
     validateRequest({ body: updateArticleSchema }),
     async (req: Request, res: Response) => {
@@ -242,21 +252,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "Forbidden" });
         }
 
-        // Process new featured image if uploaded
+        // Process new images if uploaded
         let featuredImage = article.featuredImage;
-        if (req.file) {
+        let existingImages: string[] = article.images ? JSON.parse(article.images) : [];
+        let newImages: string[] = [];
+        
+        if (req.files && Array.isArray(req.files)) {
           // Create user folder in Dropbox if needed
           await createUserFolder(req.user.id);
           
-          // Upload to Dropbox if integration is available
-          const dropboxLink = await uploadToDropbox(
-            req.file.path,
-            req.user.id,
-            req.file.filename
-          );
+          // Process each uploaded file
+          for (const file of req.files) {
+            // Upload to Dropbox if integration is available
+            const dropboxLink = await uploadToDropbox(
+              file.path,
+              req.user.id,
+              file.filename
+            );
+            
+            newImages.push(file.filename);
+          }
           
-          // Keep local path for now
-          featuredImage = req.file.filename;
+          // Combine existing and new images (limit to 10 total)
+          const allImages = [...existingImages, ...newImages].slice(0, 10);
+          
+          // Update featured image if we have new images
+          if (newImages.length > 0) {
+            featuredImage = allImages[0];
+          }
+          
+          existingImages = allImages;
         }
 
         // Calculate word count if content changed
@@ -269,6 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const updatedArticle = await storage.updateArticle(id, {
           ...req.body,
           featuredImage,
+          images: existingImages.length > 0 ? JSON.stringify(existingImages) : null,
           wordCount
         });
 

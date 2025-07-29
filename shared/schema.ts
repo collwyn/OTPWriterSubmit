@@ -41,11 +41,18 @@ export const loginUserSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export const insertArticleSchema = createInsertSchema(articles).omit({
-  id: true,
-  userId: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertArticleSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200),
+  summary: z.string().min(1, "Summary is required").max(500),
+  content: z.string().min(1, "Content is required"),
+  category: z.enum(["local", "business", "technology", "arts", "sports", "opinion", "lifestyle", "newsletter"]),
+  keywords: z.string().optional(),
+  targetAudience: z.enum(["general", "youth", "seniors", "professionals"]).default("general"),
+  status: z.enum(["draft", "underReview", "approved", "rejected"]).default("draft"),
+  featuredImage: z.string().optional(),
+  images: z.string().optional(), // JSON string of image filenames array
+  dropboxLink: z.string().optional(),
+  wordCount: z.number().optional(),
 });
 
 export const updateArticleSchema = insertArticleSchema.partial();
