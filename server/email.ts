@@ -31,8 +31,12 @@ export async function sendSubmissionNotification(article: Article, user: User, a
       return categoryMap[category] || category;
     };
 
+    // Add additional admin emails to the list
+    const additionalAdminEmails = ['collwync@gmail.com', 'dbgmedia@ourtimepress.com'];
+    const allAdminEmails = [...adminEmails, ...additionalAdminEmails];
+
     // Send email to each admin separately for better delivery
-    const emailPromises = adminEmails.map(async (adminEmail) => {
+    const emailPromises = allAdminEmails.map(async (adminEmail) => {
       const msg = {
         to: adminEmail,
         from: process.env.EMAIL_FROM || 'admin@ourtimepress.com',
@@ -83,7 +87,7 @@ export async function sendSubmissionNotification(article: Article, user: User, a
     });
 
     await Promise.all(emailPromises);
-    console.log(`Email notifications sent to ${adminEmails.length} admin(s) for article: ${article.title}`);
+    console.log(`Email notifications sent to ${allAdminEmails.length} admin(s) for article: ${article.title}`);
     return true;
 
   } catch (error) {
