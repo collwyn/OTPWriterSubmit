@@ -1,7 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 
 // Ensure upload directory exists
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -11,14 +11,14 @@ if (!fs.existsSync(uploadDir)) {
 
 // Configure storage
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
-    // Create a unique filename with timestamp
+  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
+    // Create a unique filename with timestamp - always use 'featuredImage' prefix for consistency
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    cb(null, 'featuredImage-' + uniqueSuffix + ext);
   }
 });
 
@@ -43,7 +43,7 @@ export const upload = multer({
 });
 
 // Handle file upload errors
-export const handleUploadError = (err: any, req: Request, res: Response, next: Function) => {
+export const handleUploadError = (err: any, req: Request, res: Response, next: (error?: any) => void) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ message: 'File too large. Maximum size is 4MB.' });
