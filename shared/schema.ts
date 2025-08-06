@@ -21,6 +21,7 @@ export const articles = pgTable("articles", {
   keywords: text("keywords"),
   targetAudience: text("target_audience"),
   featuredImage: text("featured_image"),
+  images: text("images"), // JSON string array of additional image filenames
   dropboxLink: text("dropbox_link"),
   status: text("status").default("draft").notNull(),
   wordCount: integer("word_count"),

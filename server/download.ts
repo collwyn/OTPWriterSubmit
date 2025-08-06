@@ -93,16 +93,27 @@ export async function downloadArticleAsZip(article: Article, user: User, res: Re
     for (const imageName of imagesToInclude) {
       const imagePath = path.join(process.cwd(), 'uploads', imageName);
       
-      // Check if image exists
+      // Check if image exists in uploads directory
       if (await fs.pathExists(imagePath)) {
         console.log(`Adding image to archive: ${imageName}`);
         archive.append(fs.createReadStream(imagePath), { 
           name: `images/${imageName}` 
         });
       } else {
-        console.warn(`Image file not found: ${imagePath}`);
+        // Also check in attached_assets directory for original files
+        const attachedPath = path.join(process.cwd(), 'attached_assets', imageName);
+        if (await fs.pathExists(attachedPath)) {
+          console.log(`Adding image from attached_assets to archive: ${imageName}`);
+          archive.append(fs.createReadStream(attachedPath), { 
+            name: `images/${imageName}` 
+          });
+        } else {
+          console.warn(`Image file not found in uploads or attached_assets: ${imageName}`);
+        }
       }
     }
+    
+    console.log(`Total images added to archive: ${imagesToInclude.length}`);
     
     // Finalize the archive
     await archive.finalize();
