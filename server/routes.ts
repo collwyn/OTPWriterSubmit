@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
@@ -14,6 +15,9 @@ import path from "path";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
+
+  // Serve static files from uploads directory
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   // User routes
   app.get("/api/users", async (req: Request, res: Response) => {
@@ -361,10 +365,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Article not found" });
       }
 
-      // Check article is approved or user has permission
-      if (article.status !== "approved" && !req.user.isAdmin && article.userId !== req.user.id) {
+      // Admins can download any article, others can only download their own
+      if (!req.user.isAdmin && article.userId !== req.user.id) {
         return res.status(403).json({ 
-          message: "You can only download approved articles or your own articles" 
+          message: "You can only download your own articles" 
         });
       }
 

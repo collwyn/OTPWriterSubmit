@@ -59,13 +59,17 @@ export function ArticleCard({ article, onView, onEdit, onDelete }: ArticleCardPr
                 <img 
                   className="h-16 w-16 rounded object-cover" 
                   src={`/uploads/${article.featuredImage}`} 
-                  alt="Article thumbnail" 
+                  alt="Article thumbnail"
+                  onError={(e) => {
+                    console.error(`Failed to load image: /uploads/${article.featuredImage}`);
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.style.setProperty('display', 'flex');
+                  }}
                 />
-              ) : (
-                <div className="h-16 w-16 rounded bg-neutral-lightest flex items-center justify-center">
-                  <FileText className="h-6 w-6 text-muted-foreground" />
-                </div>
-              )}
+              ) : null}
+              <div className="h-16 w-16 rounded bg-neutral-lightest flex items-center justify-center" style={{ display: article.featuredImage ? 'none' : 'flex' }}>
+                <FileText className="h-6 w-6 text-muted-foreground" />
+              </div>
             </div>
             <div className="sm:ml-4">
               <h3 className="text-lg font-semibold text-neutral-dark">{article.title}</h3>

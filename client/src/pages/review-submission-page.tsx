@@ -244,6 +244,10 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                                 src={`/uploads/${image}`} 
                                 alt={`Image ${index + 1}`} 
                                 className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light"
+                                onError={(e) => {
+                                  console.error(`Failed to load image: /uploads/${image}`);
+                                  e.currentTarget.src = '/placeholder-image.png';
+                                }}
                               />
                               {index === 0 && (
                                 <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">
@@ -255,7 +259,11 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                         ) : article.featuredImage ? (
                           <img 
                             src={`/uploads/${article.featuredImage}`} 
-                            alt="Featured image" 
+                            alt="Featured image"
+                            onError={(e) => {
+                              console.error(`Failed to load featured image: /uploads/${article.featuredImage}`);
+                              e.currentTarget.src = '/placeholder-image.png';
+                            }} 
                             className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light"
                           />
                         ) : null}

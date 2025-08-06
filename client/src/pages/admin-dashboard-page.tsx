@@ -375,13 +375,17 @@ export default function AdminDashboardPage() {
                                 <img 
                                   src={`/uploads/${article.featuredImage}`} 
                                   alt="" 
-                                  className="h-10 w-10 rounded object-cover" 
+                                  className="h-10 w-10 rounded object-cover"
+                                  onError={(e) => {
+                                    console.error(`Failed to load image: /uploads/${article.featuredImage}`);
+                                    e.currentTarget.style.display = 'none';
+                                    e.currentTarget.nextElementSibling?.style.setProperty('display', 'flex');
+                                  }}
                                 />
-                              ) : (
-                                <div className="h-10 w-10 rounded bg-neutral-lightest flex items-center justify-center">
-                                  <Filter className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                              )}
+                              ) : null}
+                              <div className="h-10 w-10 rounded bg-neutral-lightest flex items-center justify-center" style={{ display: article.featuredImage ? 'none' : 'flex' }}>
+                                <Filter className="h-5 w-5 text-muted-foreground" />
+                              </div>
                             </div>
                             <div className="ml-4">
                               <div className="text-sm font-medium text-neutral-dark line-clamp-1">
