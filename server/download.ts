@@ -71,16 +71,36 @@ export async function downloadArticleAsZip(article: Article, user: User, res: Re
     
     archive.append(metadataJson, { name: 'metadata.json' });
     
-    // Add featured image if exists
-    if (article.featuredImage) {
-      const imagePath = path.join(process.cwd(), 'uploads', article.featuredImage);
+    // Add all images if they exist
+    const imagesToInclude: string[] = [];
+    
+    // Add images from the images array
+    if (article.images) {
+      try {
+        const imagesList: string[] = JSON.parse(article.images);
+        imagesToInclude.push(...imagesList);
+      } catch (error) {
+        console.warn('Error parsing images JSON:', error);
+      }
+    }
+    
+    // Also include featured image if it exists and isn't already in the list
+    if (article.featuredImage && !imagesToInclude.includes(article.featuredImage)) {
+      imagesToInclude.push(article.featuredImage);
+    }
+    
+    // Add all images to the archive
+    for (const imageName of imagesToInclude) {
+      const imagePath = path.join(process.cwd(), 'uploads', imageName);
       
       // Check if image exists
       if (await fs.pathExists(imagePath)) {
-        // Create images directory in the zip
+        console.log(`Adding image to archive: ${imageName}`);
         archive.append(fs.createReadStream(imagePath), { 
-          name: `images/${article.featuredImage}` 
+          name: `images/${imageName}` 
         });
+      } else {
+        console.warn(`Image file not found: ${imagePath}`);
       }
     }
     

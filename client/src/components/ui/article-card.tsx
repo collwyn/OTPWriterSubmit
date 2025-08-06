@@ -55,19 +55,20 @@ export function ArticleCard({ article, onView, onEdit, onDelete }: ArticleCardPr
         <div className="flex-grow mb-4 sm:mb-0">
           <div className="flex items-start">
             <div className="flex-shrink-0 hidden sm:block">
-              {article.featuredImage ? (
+              {article.featuredImage || (article.images && JSON.parse(article.images || '[]').length > 0) ? (
                 <img 
                   className="h-16 w-16 rounded object-cover" 
-                  src={`/uploads/${article.featuredImage}`} 
+                  src={`/uploads/${article.featuredImage || (article.images ? JSON.parse(article.images)[0] : '')}`} 
                   alt="Article thumbnail"
                   onError={(e) => {
-                    console.error(`Failed to load image: /uploads/${article.featuredImage}`);
+                    console.error(`Failed to load image`);
                     e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling?.style.setProperty('display', 'flex');
+                    const sibling = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (sibling) sibling.style.display = 'flex';
                   }}
                 />
               ) : null}
-              <div className="h-16 w-16 rounded bg-neutral-lightest flex items-center justify-center" style={{ display: article.featuredImage ? 'none' : 'flex' }}>
+              <div className="h-16 w-16 rounded bg-neutral-lightest flex items-center justify-center" style={{ display: (article.featuredImage || (article.images && JSON.parse(article.images || '[]').length > 0)) ? 'none' : 'flex' }}>
                 <FileText className="h-6 w-6 text-muted-foreground" />
               </div>
             </div>

@@ -246,7 +246,14 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                                 className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light"
                                 onError={(e) => {
                                   console.error(`Failed to load image: /uploads/${image}`);
-                                  e.currentTarget.src = '/placeholder-image.png';
+                                  e.currentTarget.style.display = 'none';
+                                  const parent = e.currentTarget.parentElement;
+                                  if (parent) {
+                                    const errorDiv = document.createElement('div');
+                                    errorDiv.className = 'w-full h-48 bg-gray-100 border border-neutral-light rounded-lg flex items-center justify-center text-gray-500';
+                                    errorDiv.innerHTML = '<span>Image not found</span>';
+                                    parent.appendChild(errorDiv);
+                                  }
                                 }}
                               />
                               {index === 0 && (
@@ -257,15 +264,27 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                             </div>
                           ))
                         ) : article.featuredImage ? (
-                          <img 
-                            src={`/uploads/${article.featuredImage}`} 
-                            alt="Featured image"
-                            onError={(e) => {
-                              console.error(`Failed to load featured image: /uploads/${article.featuredImage}`);
-                              e.currentTarget.src = '/placeholder-image.png';
-                            }} 
-                            className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light"
-                          />
+                          <div className="relative">
+                            <img 
+                              src={`/uploads/${article.featuredImage}`} 
+                              alt="Featured image"
+                              onError={(e) => {
+                                console.error(`Failed to load featured image: /uploads/${article.featuredImage}`);
+                                e.currentTarget.style.display = 'none';
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  const errorDiv = document.createElement('div');
+                                  errorDiv.className = 'w-full h-48 bg-gray-100 border border-neutral-light rounded-lg flex items-center justify-center text-gray-500';
+                                  errorDiv.innerHTML = '<span>Image not found</span>';
+                                  parent.appendChild(errorDiv);
+                                }
+                              }} 
+                              className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light"
+                            />
+                            <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">
+                              Featured
+                            </div>
+                          </div>
                         ) : null}
                       </div>
                     </div>

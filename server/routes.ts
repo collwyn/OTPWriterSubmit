@@ -403,14 +403,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Article not found" });
       }
 
-      // Delete associated image file if it exists
-      if (article.featuredImage) {
-        const fullPath = path.join(process.cwd(), "uploads", article.featuredImage);
+      // Delete associated image files if they exist
+      const imagesToDelete: string[] = [];
+      
+      // Add images from the images array
+      if (article.images) {
+        try {
+          const imagesList: string[] = JSON.parse(article.images);
+          imagesToDelete.push(...imagesList);
+        } catch (error) {
+          console.warn('Error parsing images JSON during deletion:', error);
+        }
+      }
+      
+      // Also include featured image if it exists and isn't already in the list
+      if (article.featuredImage && !imagesToDelete.includes(article.featuredImage)) {
+        imagesToDelete.push(article.featuredImage);
+      }
+      
+      // Delete all associated images
+      for (const imageName of imagesToDelete) {
+        const fullPath = path.join(process.cwd(), "uploads", imageName);
         if (fs.existsSync(fullPath)) {
           try {
             fs.unlinkSync(fullPath);
+            console.log(`Deleted image file: ${imageName}`);
           } catch (error) {
-            console.warn(`Failed to delete image file: ${article.featuredImage}`, error);
+            console.warn(`Failed to delete image file: ${imageName}`, error);
           }
         }
       }

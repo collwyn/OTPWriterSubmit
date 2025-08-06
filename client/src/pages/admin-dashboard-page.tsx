@@ -371,19 +371,20 @@ export default function AdminDashboardPage() {
                         <TableCell>
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10">
-                              {article.featuredImage ? (
+                              {article.featuredImage || (article.images && JSON.parse(article.images || '[]').length > 0) ? (
                                 <img 
-                                  src={`/uploads/${article.featuredImage}`} 
+                                  src={`/uploads/${article.featuredImage || (article.images ? JSON.parse(article.images)[0] : '')}`} 
                                   alt="" 
                                   className="h-10 w-10 rounded object-cover"
                                   onError={(e) => {
-                                    console.error(`Failed to load image: /uploads/${article.featuredImage}`);
+                                    console.error(`Failed to load image`);
                                     e.currentTarget.style.display = 'none';
-                                    e.currentTarget.nextElementSibling?.style.setProperty('display', 'flex');
+                                    const sibling = e.currentTarget.nextElementSibling as HTMLElement;
+                                    if (sibling) sibling.style.display = 'flex';
                                   }}
                                 />
                               ) : null}
-                              <div className="h-10 w-10 rounded bg-neutral-lightest flex items-center justify-center" style={{ display: article.featuredImage ? 'none' : 'flex' }}>
+                              <div className="h-10 w-10 rounded bg-neutral-lightest flex items-center justify-center" style={{ display: (article.featuredImage || (article.images && JSON.parse(article.images || '[]').length > 0)) ? 'none' : 'flex' }}>
                                 <Filter className="h-5 w-5 text-muted-foreground" />
                               </div>
                             </div>
