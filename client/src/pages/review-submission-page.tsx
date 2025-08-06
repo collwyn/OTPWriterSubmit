@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { Article, User } from "@shared/schema";
-import { ArrowLeft, Calendar, Clock, FileText, ThumbsUp, ThumbsDown, MessageSquare, Download, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, FileText, ThumbsUp, ThumbsDown, MessageSquare, Download, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,6 +24,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type ArticleWithAuthor = Article & {
   author?: { 
@@ -43,6 +48,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
   const params = useParams();
   const { toast } = useToast();
   const [feedback, setFeedback] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Get article ID from props or URL params
   const articleId = propId || params.id;
@@ -243,7 +249,8 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                               <img 
                                 src={`/uploads/${image}`} 
                                 alt={`Image ${index + 1}`} 
-                                className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light"
+                                className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light cursor-pointer hover:shadow-md transition-shadow"
+                                onClick={() => setSelectedImage(`/uploads/${image}`)}
                                 onError={(e) => {
                                   console.error(`Failed to load image: /uploads/${image}`);
                                   e.currentTarget.style.display = 'none';
@@ -268,6 +275,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                             <img 
                               src={`/uploads/${article.featuredImage}`} 
                               alt="Featured image"
+                              onClick={() => setSelectedImage(`/uploads/${article.featuredImage}`)}
                               onError={(e) => {
                                 console.error(`Failed to load featured image: /uploads/${article.featuredImage}`);
                                 e.currentTarget.style.display = 'none';
@@ -279,7 +287,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                                   parent.appendChild(errorDiv);
                                 }
                               }} 
-                              className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light"
+                              className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light cursor-pointer hover:shadow-md transition-shadow"
                             />
                             <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">
                               Featured
@@ -513,6 +521,27 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
           )}
         </div>
       </main>
+
+      {/* Image Modal */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden">
+          <div className="relative">
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            {selectedImage && (
+              <img
+                src={selectedImage}
+                alt="Full size view"
+                className="w-full h-auto max-h-[90vh] object-contain"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>
