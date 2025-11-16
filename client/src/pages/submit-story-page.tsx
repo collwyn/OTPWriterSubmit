@@ -24,6 +24,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 // Extended schema with file validation
 const extendedSchema = insertArticleSchema.extend({
   imageFiles: z.any().optional(),
+  videoFile: z.any().optional(),
 });
 
 type FormValues = z.infer<typeof extendedSchema>;
@@ -37,8 +38,10 @@ export default function SubmitStoryPage() {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [previewImageUrls, setPreviewImageUrls] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Get article ID from URL if editing
   const articleId = new URLSearchParams(search).get('id');
 
@@ -51,7 +54,7 @@ export default function SubmitStoryPage() {
   useEffect(() => {
     if (articleId && editArticle) {
       setIsEditing(true);
-      
+
       // If article has images, show previews
       if (editArticle.images) {
         try {
@@ -65,7 +68,14 @@ export default function SubmitStoryPage() {
         // Backward compatibility for single featured image
         setPreviewImageUrls([`/uploads/${editArticle.featuredImage}`]);
       }
-      
+
+      // If article has video, set preview
+      if (editArticle.video) {
+        setVideoPreviewUrl(`/uploads/${editArticle.video}`);
+        // Note: We don't store the File object for existing videos directly,
+        // as it's already on the server. We only handle new uploads.
+      }
+
       // Reset form with article data
       form.reset({
         title: editArticle.title,
@@ -75,6 +85,8 @@ export default function SubmitStoryPage() {
         keywords: editArticle.keywords || '',
         targetAudience: editArticle.targetAudience || 'general',
         status: editArticle.status,
+        imageFiles: undefined, // Clear any existing file inputs
+        videoFile: undefined,
       });
     }
   }, [articleId, editArticle]);
@@ -91,16 +103,17 @@ export default function SubmitStoryPage() {
       targetAudience: 'general',
       status: 'draft',
       imageFiles: undefined,
+      videoFile: undefined,
     },
   });
 
-  // Handle multiple file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle multiple image file selection
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) {
       return;
     }
-    
+
     // Check if adding these files would exceed the limit
     const totalFiles = selectedFiles.length + files.length;
     if (totalFiles > 10) {
@@ -111,27 +124,27 @@ export default function SubmitStoryPage() {
       });
       return;
     }
-    
+
     // Validate each file
     const validFiles: File[] = [];
     const invalidFiles: string[] = [];
-    
+
     for (const file of files) {
       // Validate file type
       if (!['image/jpeg', 'image/jpg'].includes(file.type)) {
         invalidFiles.push(`${file.name} (invalid type)`);
         continue;
       }
-      
+
       // Validate file size (4MB)
       if (file.size > 4 * 1024 * 1024) {
         invalidFiles.push(`${file.name} (too large)`);
         continue;
       }
-      
+
       validFiles.push(file);
     }
-    
+
     // Show error for invalid files
     if (invalidFiles.length > 0) {
       toast({
@@ -140,50 +153,99 @@ export default function SubmitStoryPage() {
         variant: "destructive",
       });
     }
-    
+
     if (validFiles.length > 0) {
       // Add valid files to existing selection
       const newSelectedFiles = [...selectedFiles, ...validFiles];
       setSelectedFiles(newSelectedFiles);
-      
+
       // Set form value
       form.setValue('imageFiles', newSelectedFiles);
-      
+
       // Generate preview URLs for new files
       const newPreviewUrls = validFiles.map(file => URL.createObjectURL(file));
       setPreviewImageUrls(prev => [...prev, ...newPreviewUrls]);
     }
   };
 
+  // Handle video file selection
+  const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    // Validate file type (MP4)
+    if (file.type !== 'video/mp4') {
+      toast({
+        title: "Invalid file type",
+        description: "Only MP4 video files are allowed.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5GB)
+    if (file.size > 5 * 1024 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Video files must be 5GB or smaller.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedVideo(file);
+    setVideoPreviewUrl(URL.createObjectURL(file));
+    form.setValue('videoFile', file);
+  };
+
+
   // Remove image from selection
   const removeImage = (index: number) => {
     const newSelectedFiles = selectedFiles.filter((_, i) => i !== index);
     const newPreviewUrls = previewImageUrls.filter((_, i) => i !== index);
-    
+
     setSelectedFiles(newSelectedFiles);
     setPreviewImageUrls(newPreviewUrls);
     form.setValue('imageFiles', newSelectedFiles.length > 0 ? newSelectedFiles : undefined);
   };
 
+  // Remove video from selection
+  const removeVideo = () => {
+    setSelectedVideo(null);
+    setVideoPreviewUrl(null);
+    form.setValue('videoFile', undefined);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''; // Clear the input value
+    }
+  };
+
+
   // Form submission
   const submitMutation = useMutation({
     mutationFn: async (values: FormValues) => {
       const formData = new FormData();
-      
+
       // Add text data
       Object.keys(values).forEach(key => {
-        if (key !== 'imageFiles' && values[key as keyof FormValues] !== undefined) {
+        if (key !== 'imageFiles' && key !== 'videoFile' && values[key as keyof FormValues] !== undefined) {
           formData.append(key, values[key as keyof FormValues] as string);
         }
       });
-      
+
       // Add images if available
       if (values.imageFiles && Array.isArray(values.imageFiles)) {
         values.imageFiles.forEach((file: File) => {
           formData.append('images', file);
         });
       }
-      
+
+      // Add video if available
+      if (values.videoFile) {
+        formData.append('video', values.videoFile);
+      }
+
       // Call API
       if (isEditing) {
         const res = await apiRequest("PATCH", `/api/articles/${articleId}`, null, formData);
@@ -196,14 +258,14 @@ export default function SubmitStoryPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/articles'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
-      
+
       toast({
         title: isEditing ? "Story updated successfully" : "Story submitted successfully",
         description: form.getValues('status') === 'underReview'
           ? "Your story has been submitted for review."
           : "Your story has been saved as a draft.",
       });
-      
+
       navigate('/');
     },
     onError: (error: Error) => {
@@ -245,24 +307,24 @@ export default function SubmitStoryPage() {
                 <FormItem>
                   <FormLabel>Story Title <span className="text-secondary">*</span></FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Enter the title of your story" 
-                      {...field} 
+                    <Input
+                      placeholder="Enter the title of your story"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="category"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category <span className="text-secondary">*</span></FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
+                  <Select
+                    onValueChange={field.onChange}
                     defaultValue={field.value}
                     value={field.value}
                   >
@@ -286,7 +348,7 @@ export default function SubmitStoryPage() {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="summary"
@@ -294,11 +356,11 @@ export default function SubmitStoryPage() {
                 <FormItem>
                   <FormLabel>Summary <span className="text-secondary">*</span></FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="A brief summary of your story (150-200 words)" 
-                      className="resize-none" 
+                    <Textarea
+                      placeholder="A brief summary of your story (150-200 words)"
+                      className="resize-none"
                       rows={3}
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -308,7 +370,7 @@ export default function SubmitStoryPage() {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="keywords"
@@ -316,9 +378,9 @@ export default function SubmitStoryPage() {
                 <FormItem>
                   <FormLabel>Keywords</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="climate, environment, policy, etc." 
-                      {...field} 
+                    <Input
+                      placeholder="climate, environment, policy, etc."
+                      {...field}
                       value={field.value ?? ''}
                     />
                   </FormControl>
@@ -329,7 +391,7 @@ export default function SubmitStoryPage() {
                 </FormItem>
               )}
             />
-            
+
 
           </div>
         );
@@ -369,9 +431,9 @@ export default function SubmitStoryPage() {
                     </Button>
                   </div>
                 </div>
-                <Textarea 
+                <Textarea
                   id="content"
-                  placeholder="Write your story here or paste from a document" 
+                  placeholder="Write your story here or paste from a document"
                   className="block w-full min-h-[300px] border-0 focus-visible:ring-0 resize-vertical p-3"
                   rows={12}
                   value={form.getValues('content')}
@@ -387,7 +449,7 @@ export default function SubmitStoryPage() {
                 </p>
               )}
             </div>
-            
+
             <FormItem>
               <FormLabel>Images (up to 10) <span className="text-secondary">*</span></FormLabel>
               <div className="space-y-4">
@@ -395,10 +457,10 @@ export default function SubmitStoryPage() {
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {previewImageUrls.map((url, index) => (
                       <div key={index} className="relative group border border-neutral-light rounded-md overflow-hidden">
-                        <img 
-                          src={url} 
-                          alt={`Preview ${index + 1}`} 
-                          className="w-full h-24 object-cover" 
+                        <img
+                          src={url}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-24 object-cover"
                         />
                         <Button
                           type="button"
@@ -416,25 +478,24 @@ export default function SubmitStoryPage() {
                     ))}
                   </div>
                 )}
-                
+
                 {previewImageUrls.length < 10 && (
                   <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-neutral-light border-dashed rounded-md">
                     <div className="space-y-1 text-center">
                       <Image className="mx-auto h-12 w-12 text-muted-foreground" />
                       <div className="flex text-sm text-muted-foreground">
                         <label
-                          htmlFor="file-upload"
+                          htmlFor="image-file-upload"
                           className="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary/80 focus-within:outline-none"
                         >
                           <span>Upload images</span>
                           <input
-                            id="file-upload"
-                            name="file-upload"
+                            id="image-file-upload"
+                            name="image-file-upload"
                             type="file"
                             multiple
                             className="sr-only"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
+                            onChange={handleImageFileChange}
                             accept=".jpg,.jpeg"
                           />
                         </label>
@@ -456,7 +517,64 @@ export default function SubmitStoryPage() {
                 </p>
               )}
             </FormItem>
-            
+
+            <FormItem>
+              <FormLabel>Video (MP4, up to 5GB) <span className="text-secondary">*</span></FormLabel>
+              <div className="space-y-4">
+                {videoPreviewUrl && (
+                  <div className="relative group border border-neutral-light rounded-md overflow-hidden">
+                    <video src={videoPreviewUrl} controls className="w-full max-h-48 object-cover" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={removeVideo}
+                    >
+                      ×
+                    </Button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 text-center">
+                      {selectedVideo?.name || 'Video'}
+                    </div>
+                  </div>
+                )}
+
+                {!videoPreviewUrl && (
+                  <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-neutral-light border-dashed rounded-md">
+                    <div className="space-y-1 text-center">
+                      <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <div className="flex text-sm text-muted-foreground">
+                        <label
+                          htmlFor="video-file-upload"
+                          className="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary/80 focus-within:outline-none"
+                        >
+                          <span>Upload video</span>
+                          <input
+                            id="video-file-upload"
+                            name="video-file-upload"
+                            type="file"
+                            className="sr-only"
+                            ref={fileInputRef}
+                            onChange={handleVideoFileChange}
+                            accept=".mp4"
+                          />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        MP4 only, up to 5GB
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {form.formState.errors.videoFile && (
+                <p className="text-destructive text-sm mt-1">
+                  {form.formState.errors.videoFile.message as string}
+                </p>
+              )}
+            </FormItem>
+
             <FormItem>
               <FormLabel>Dropbox Integration</FormLabel>
               <div className="mt-1 bg-blue-50 border border-blue-200 rounded-md p-4">
@@ -488,7 +606,7 @@ export default function SubmitStoryPage() {
             <div className="border border-neutral-light rounded-lg overflow-hidden">
               <div className="bg-neutral-lightest px-4 py-3 border-b border-neutral-light flex justify-between items-center">
                 <h3 className="font-medium text-neutral-dark">Story Details</h3>
-                <Button 
+                <Button
                   type="button"
                   variant="link"
                   className="text-primary hover:text-primary/80 p-0 h-auto"
@@ -527,11 +645,11 @@ export default function SubmitStoryPage() {
                 </dl>
               </div>
             </div>
-            
+
             <div className="border border-neutral-light rounded-lg overflow-hidden">
               <div className="bg-neutral-lightest px-4 py-3 border-b border-neutral-light flex justify-between items-center">
                 <h3 className="font-medium text-neutral-dark">Content Preview</h3>
-                <Button 
+                <Button
                   type="button"
                   variant="link"
                   className="text-primary hover:text-primary/80 p-0 h-auto"
@@ -552,11 +670,11 @@ export default function SubmitStoryPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="border border-neutral-light rounded-lg overflow-hidden">
               <div className="bg-neutral-lightest px-4 py-3 border-b border-neutral-light flex justify-between items-center">
                 <h3 className="font-medium text-neutral-dark">Media Files</h3>
-                <Button 
+                <Button
                   type="button"
                   variant="link"
                   className="text-primary hover:text-primary/80 p-0 h-auto"
@@ -588,12 +706,26 @@ export default function SubmitStoryPage() {
                 ) : (
                   <p className="text-sm text-muted-foreground">No images selected.</p>
                 )}
-                
+
+                <h4 className="text-sm font-medium text-neutral-dark mt-6 mb-3">Video</h4>
+                {videoPreviewUrl ? (
+                  <div className="border border-neutral-light rounded-md overflow-hidden">
+                    <video src={videoPreviewUrl} controls className="w-full max-h-48" />
+                    <div className="p-2">
+                      <p className="text-xs text-neutral-dark font-medium truncate">
+                        {selectedVideo?.name || 'Video file'}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No video selected.</p>
+                )}
+
                 <h4 className="text-sm font-medium text-neutral-dark mt-6 mb-3">Dropbox Integration</h4>
                 <p className="text-sm text-muted-foreground">Not connected.</p>
               </div>
             </div>
-            
+
             <div className="border border-neutral-light rounded-lg overflow-hidden">
               <div className="bg-neutral-lightest px-4 py-3 border-b border-neutral-light">
                 <h3 className="font-medium text-neutral-dark">Submission Agreement</h3>
@@ -610,7 +742,7 @@ export default function SubmitStoryPage() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <Checkbox id="editorial" className="mt-0.5" required />
                   <div className="ml-3">
@@ -634,13 +766,13 @@ export default function SubmitStoryPage() {
   return (
     <div className="min-h-screen flex flex-col bg-neutral-lightest">
       <Header />
-      
+
       <main className="flex-grow">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <Button 
-              onClick={() => navigate('/')} 
-              variant="ghost" 
+            <Button
+              onClick={() => navigate('/')}
+              variant="ghost"
               className="text-muted-foreground hover:text-foreground flex items-center"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -652,7 +784,7 @@ export default function SubmitStoryPage() {
               {isEditing ? 'Edit Story' : 'Submit a New Story'}
             </h2>
             <p className="text-muted-foreground">
-              {isEditing 
+              {isEditing
                 ? 'Update your story details below'
                 : 'Complete the form below to submit your story for review'}
             </p>
@@ -661,16 +793,16 @@ export default function SubmitStoryPage() {
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="p-6">
               <SubmissionStepper currentStep={step} />
-              
+
               <Form {...form}>
                 <form>
                   {renderStepContent()}
-                  
+
                   <div className="mt-8 flex justify-between">
                     {step > 1 ? (
-                      <Button 
-                        type="button" 
-                        variant="outline" 
+                      <Button
+                        type="button"
+                        variant="outline"
                         onClick={() => setStep(step - 1)}
                         className="text-muted-foreground border-neutral-light hover:text-primary hover:border-primary"
                       >
@@ -678,9 +810,9 @@ export default function SubmitStoryPage() {
                         <span>Previous</span>
                       </Button>
                     ) : (
-                      <Button 
-                        type="button" 
-                        variant="outline" 
+                      <Button
+                        type="button"
+                        variant="outline"
                         onClick={saveAsDraft}
                         className="text-muted-foreground border-neutral-light hover:text-primary hover:border-primary"
                         disabled={submitMutation.isPending}
@@ -689,10 +821,10 @@ export default function SubmitStoryPage() {
                         <span>Save as Draft</span>
                       </Button>
                     )}
-                    
+
                     {step < 3 ? (
-                      <Button 
-                        type="button" 
+                      <Button
+                        type="button"
                         onClick={() => setStep(step + 1)}
                         className="bg-primary hover:bg-primary/90"
                       >
@@ -700,8 +832,8 @@ export default function SubmitStoryPage() {
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     ) : (
-                      <Button 
-                        type="button" 
+                      <Button
+                        type="button"
                         onClick={submitForReview}
                         className="bg-secondary hover:bg-secondary/90"
                         disabled={submitMutation.isPending}
@@ -717,7 +849,7 @@ export default function SubmitStoryPage() {
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

@@ -22,22 +22,22 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter to only allow JPG files
+// File filter to allow JPG images and MP4 videos
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  // Accept only jpg/jpeg files
-  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg') {
+  // Accept jpg/jpeg images or mp4 videos
+  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg' || file.mimetype === 'video/mp4') {
     cb(null, true);
   } else {
-    cb(new Error('Only JPG images are allowed'));
+    cb(new Error('Only JPG images and MP4 videos are allowed'));
   }
 };
 
-// Create multer upload instance with size limit of 4MB per file, max 10 files
+// Create multer upload instance with size limit of 5GB per file, max 10 files
 export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 4 * 1024 * 1024, // 4MB in bytes per file
+    fileSize: 5 * 1024 * 1024 * 1024, // 5GB in bytes per file
     files: 10, // Maximum 10 files
   }
 });
@@ -46,7 +46,7 @@ export const upload = multer({
 export const handleUploadError = (err: any, req: Request, res: Response, next: (error?: any) => void) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ message: 'File too large. Maximum size is 4MB.' });
+      return res.status(400).json({ message: 'File too large. Maximum size is 5GB.' });
     }
     return res.status(400).json({ message: `Upload error: ${err.message}` });
   } else if (err) {

@@ -179,6 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Process uploaded files if they exist
         let featuredImage = null;
         let images: string[] = [];
+        let video: string | null = null;
         
         if (req.files && Array.isArray(req.files)) {
           // Create Dropbox folder for user if needed
@@ -193,7 +194,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               file.filename
             );
             
-            images.push(file.filename);
+            // Separate videos from images
+            if (file.mimetype === 'video/mp4') {
+              video = file.filename;
+            } else {
+              images.push(file.filename);
+            }
           }
           
           // Set the first image as featured image for backward compatibility
@@ -211,6 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...req.body,
           featuredImage,
           images: images.length > 0 ? JSON.stringify(images) : null,
+          video,
           wordCount
         });
 
@@ -258,10 +265,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "Forbidden" });
         }
 
-        // Process new images if uploaded
+        // Process new images and video if uploaded
         let featuredImage = article.featuredImage;
         let existingImages: string[] = article.images ? JSON.parse(article.images) : [];
         let newImages: string[] = [];
+        let video = article.video;
         
         if (req.files && Array.isArray(req.files)) {
           // Create user folder in Dropbox if needed
@@ -276,7 +284,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               file.filename
             );
             
-            newImages.push(file.filename);
+            // Separate videos from images
+            if (file.mimetype === 'video/mp4') {
+              video = file.filename;
+            } else {
+              newImages.push(file.filename);
+            }
           }
           
           // Combine existing and new images (limit to 10 total)
@@ -301,6 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...req.body,
           featuredImage,
           images: existingImages.length > 0 ? JSON.stringify(existingImages) : null,
+          video,
           wordCount
         });
 
@@ -405,33 +419,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Article not found" });
       }
 
-      // Delete associated image files if they exist
-      const imagesToDelete: string[] = [];
+      // Delete associated image and video files if they exist
+      const filesToDelete: string[] = [];
       
       // Add images from the images array
       if (article.images) {
         try {
           const imagesList: string[] = JSON.parse(article.images);
-          imagesToDelete.push(...imagesList);
+          filesToDelete.push(...imagesList);
         } catch (error) {
           console.warn('Error parsing images JSON during deletion:', error);
         }
       }
       
       // Also include featured image if it exists and isn't already in the list
-      if (article.featuredImage && !imagesToDelete.includes(article.featuredImage)) {
-        imagesToDelete.push(article.featuredImage);
+      if (article.featuredImage && !filesToDelete.includes(article.featuredImage)) {
+        filesToDelete.push(article.featuredImage);
       }
       
-      // Delete all associated images
-      for (const imageName of imagesToDelete) {
-        const fullPath = path.join(process.cwd(), "uploads", imageName);
+      // Include video if it exists
+      if (article.video) {
+        filesToDelete.push(article.video);
+      }
+      
+      // Delete all associated files
+      for (const fileName of filesToDelete) {
+        const fullPath = path.join(process.cwd(), "uploads", fileName);
         if (fs.existsSync(fullPath)) {
           try {
             fs.unlinkSync(fullPath);
-            console.log(`Deleted image file: ${imageName}`);
+            console.log(`Deleted file: ${fileName}`);
           } catch (error) {
-            console.warn(`Failed to delete image file: ${imageName}`, error);
+            console.warn(`Failed to delete file: ${fileName}`, error);
           }
         }
       }
