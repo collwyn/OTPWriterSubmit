@@ -243,7 +243,6 @@ export default function SubmitStoryPage() {
     }
   };
 
-
   // Form submission
   const submitMutation = useMutation({
     mutationFn: async (values: FormValues) => {
@@ -252,7 +251,7 @@ export default function SubmitStoryPage() {
       // Add text data
       Object.keys(values).forEach(key => {
         if (key !== 'imageFiles' && key !== 'videoFile' && values[key as keyof FormValues] !== undefined) {
-          formData.append(key, values[key as keyof FormValues] as string);
+          formData.append(key, String(values[key as keyof FormValues]));
         }
       });
 
@@ -367,6 +366,7 @@ export default function SubmitStoryPage() {
                       <SelectItem value="opinion">Opinion</SelectItem>
                       <SelectItem value="lifestyle">Lifestyle</SelectItem>
                       <SelectItem value="newsletter">Newsletter</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -501,7 +501,7 @@ export default function SubmitStoryPage() {
                             placeholder="Add a caption..."
                             className="h-7 text-xs"
                             value={imageCaptions[index] || ""}
-                            onChange={(e) => updateCaption(index, e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCaption(index, e.target.value)}
                           />
                         </div>
                         <div className="absolute top-0 left-0 right-0 bg-black bg-opacity-50 text-white text-[10px] p-0.5 text-center">

@@ -36,53 +36,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Article routes
   app.get("/api/articles", async (req: Request, res: Response) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
+      console.log(`User ${req.user!.username} (ID: ${req.user!.id}, isAdmin: ${req.user!.isAdmin}) is fetching articles`);
+
       // Admin sees all articles, users see only their own
-      const articles = (req.user && req.user.isAdmin)
+      const articles = req.user!.isAdmin 
         ? await storage.getAllArticles() 
         : await storage.getArticlesByUserId(req.user!.id);
 
-      console.log(`Fetched ${articles.length} articles for user ${req.user?.username} (isAdmin: ${req.user?.isAdmin})`);
-      if (req.user?.isAdmin) {
-        console.log("Admin articles sample:", articles.slice(0, 2).map(a => ({ id: a.id, title: a.title, userId: a.userId })));
-      }
-
-        // Create a new array with explicit properties to fix serialization issues
-        const processedArticles = articles.map(article => {
-          // Explicitly construct a new object to avoid any potential serialization issues
-          return {
-            id: article.id,
-            userId: article.userId,
-            title: article.title,
-            summary: article.summary,
-            // Force content to be a string
-            content: article.content ? String(article.content) : "",
-            category: article.category,
-            keywords: article.keywords,
-            targetAudience: article.targetAudience,
-            featuredImage: article.featuredImage,
-            images: article.images,
-            imageCaptions: article.imageCaptions,
-            video: article.video,
-            dropboxLink: article.dropboxLink,
-            status: article.status,
-            wordCount: article.wordCount,
-            createdAt: article.createdAt,
-            updatedAt: article.updatedAt
-          };
-        });
+      console.log(`Fetched ${articles.length} articles`);
       
       // Get user information for each article (for admin view)
-      const articlesWithUserInfo = await Promise.all(processedArticles.map(async (article) => {
+      const articlesWithUserInfo = await Promise.all(articles.map(async (article) => {
         const user = await storage.getUser(article.userId);
+        // Explicitly construct a new object to avoid any potential serialization issues
         return {
-          ...article,
+          id: article.id,
+          userId: article.userId,
+          title: article.title,
+          summary: article.summary,
+          // Force content to be a string
+          content: article.content ? String(article.content) : "",
+          category: article.category,
+          keywords: article.keywords,
+          targetAudience: article.targetAudience,
+          featuredImage: article.featuredImage,
+          images: article.images,
+          imageCaptions: article.imageCaptions,
+          video: article.video,
+          dropboxLink: article.dropboxLink,
+          status: article.status,
+          wordCount: article.wordCount,
+          createdAt: article.createdAt,
+          updatedAt: article.updatedAt,
           author: user ? { 
             id: user.id, 
             username: user.username, 
@@ -91,15 +82,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }));
 
-      console.log("Sending articles with content:", articlesWithUserInfo.map(a => ({
-        id: a.id,
-        contentIncluded: 'content' in a,
-        contentType: typeof a.content,
-        contentLength: a.content ? a.content.length : 0
-      })));
-
       res.json(articlesWithUserInfo);
     } catch (error) {
+      console.error("Error in GET /api/articles:", error);
       res.status(500).json({ message: "Failed to fetch articles" });
     }
   });
@@ -362,6 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // Stats route
   app.get("/api/stats", async (req: Request, res: Response) => {
     try {
       if (!req.isAuthenticated()) {
@@ -369,11 +355,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // User stats or admin stats based on role
-      const userId = req.user.isAdmin ? undefined : req.user.id;
+      const userId = req.user!.isAdmin ? undefined : req.user!.id;
       const stats = await storage.getArticleCountByStatus(userId);
 
       res.json(stats);
     } catch (error) {
+      console.error("Error in GET /api/stats:", error);
       res.status(500).json({ message: "Failed to fetch stats" });
     }
   });

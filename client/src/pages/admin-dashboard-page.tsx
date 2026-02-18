@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -69,8 +69,9 @@ export default function AdminDashboardPage() {
   const [writersSearchTerm, setWritersSearchTerm] = useState("");
 
   // Fetch all articles
-  const { data: articles, isLoading: isLoadingArticles, error: articlesError } = useQuery<ArticleWithAuthor[]>({
+  const { data: articles, isLoading: isLoadingArticles, error: articlesError, refetch: refetchArticles } = useQuery<ArticleWithAuthor[]>({
     queryKey: ["/api/articles"],
+    retry: 1,
   });
 
   if (articlesError) {
@@ -78,8 +79,15 @@ export default function AdminDashboardPage() {
   }
 
   // Fetch stats
-  const { data: stats, isLoading: isLoadingStats, error: statsError } = useQuery({
+  const { data: stats, isLoading: isLoadingStats, error: statsError, refetch: refetchStats } = useQuery<{
+    total: number;
+    draft: number;
+    underReview: number;
+    approved: number;
+    rejected: number;
+  }>({
     queryKey: ["/api/stats"],
+    retry: 1,
   });
 
   if (statsError) {
@@ -87,10 +95,18 @@ export default function AdminDashboardPage() {
   }
 
   // Fetch all users (for writers management and filtering)
-  const { data: allUsers, isLoading: isLoadingUsers } = useQuery<User[]>({
+  const { data: allUsers, isLoading: isLoadingUsers, refetch: refetchUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
     enabled: true, // Always fetch users to ensure filter works
   });
+
+  // Effect to refetch data when tab changes or component mounts
+  useEffect(() => {
+    console.log("AdminDashboard activeTab changed to:", activeTab);
+    refetchArticles();
+    refetchStats();
+    refetchUsers();
+  }, [activeTab, refetchArticles, refetchStats, refetchUsers]);
 
   // Delete article mutation
   const deleteArticleMutation = useMutation({
@@ -135,16 +151,6 @@ export default function AdminDashboardPage() {
     const matchesWriter = writerFilter === "all" || 
       (typeof writerFilter === "number" && Number(article.userId) === Number(writerFilter));
     
-    // Debug logging for troubleshooting
-    console.log("Admin Filter debug:", {
-      articleId: article.id,
-      articleTitle: articleTitle,
-      matchesSearch,
-      matchesCategory,
-      matchesStatus,
-      matchesWriter
-    });
-    
     return matchesSearch && matchesCategory && matchesStatus && matchesWriter;
   }) : [];
 
@@ -155,7 +161,8 @@ export default function AdminDashboardPage() {
     writerFilter,
     categoryFilter,
     statusFilter,
-    searchTerm
+    searchTerm,
+    firstArticle: articles?.[0] ? { id: articles[0].id, title: articles[0].title, userId: articles[0].userId } : null
   });
 
   // Filter users for writers management tab
@@ -265,7 +272,7 @@ export default function AdminDashboardPage() {
                       acc.add(article.author.id);
                     }
                     return acc;
-                  }, new Set()).size || 0}
+                  }, new Set<number>()).size || 0}
                   icon="user-edit"
                   color="muted"
                 />

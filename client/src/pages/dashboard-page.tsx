@@ -7,7 +7,7 @@ import { ArticleCard } from "@/components/ui/article-card";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { Article } from "@shared/schema";
 import { Filter, SortDesc, Plus, Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,14 +21,28 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   // Fetch user articles
-  const { data: articles, isLoading: isLoadingArticles } = useQuery<Article[]>({
+  const { data: articles, isLoading: isLoadingArticles, refetch: refetchArticles } = useQuery<Article[]>({
     queryKey: ["/api/articles"],
+    retry: 1,
   });
 
   // Fetch stats
-  const { data: stats, isLoading: isLoadingStats } = useQuery({
+  const { data: stats, isLoading: isLoadingStats, refetch: refetchStats } = useQuery<{
+    total: number;
+    draft: number;
+    underReview: number;
+    approved: number;
+    rejected: number;
+  }>({
     queryKey: ["/api/stats"],
+    retry: 1,
   });
+
+  // Effect to refetch data when component mounts or filters change
+  useEffect(() => {
+    refetchArticles();
+    refetchStats();
+  }, [refetchArticles, refetchStats]);
 
   // Filter articles based on search and filters
   const filteredArticles = articles ? articles.filter(article => {
@@ -43,17 +57,14 @@ export default function DashboardPage() {
     // Status filter
     const matchesStatus = statusFilter === "all" || article.status === statusFilter;
     
-    // Debug logging
-    console.log("Writer Filter debug:", {
-      articleId: article.id,
-      title: article.title,
-      matchesSearch,
-      matchesCategory,
-      matchesStatus
-    });
-    
     return matchesSearch && matchesCategory && matchesStatus;
   }) : [];
+
+  console.log("Dashboard Articles:", {
+    total: articles?.length,
+    filtered: filteredArticles.length,
+    first: articles?.[0] ? { id: articles[0].id, title: articles[0].title } : null
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-neutral-lightest">

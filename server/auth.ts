@@ -37,7 +37,8 @@ export function setupAuth(app: Express) {
     cookie: {
       maxAge: 1000 * 60 * 60 * 24, // 24 hours
       // Only use secure cookies in production environment that supports https
-      secure: process.env.NODE_ENV === "production",
+      // However, Replit's environment often needs secure: false for previews to work correctly with sessions
+      secure: false,
       sameSite: "lax"
     }
   };
@@ -115,6 +116,7 @@ export function setupAuth(app: Express) {
         if (err) return next(err);
         // Exclude password from response
         const { password, ...safeUser } = user;
+        console.log(`User ${safeUser.username} logged in. isAdmin: ${safeUser.isAdmin}`);
         res.json(safeUser);
       });
     })(req, res, next);

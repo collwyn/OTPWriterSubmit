@@ -217,6 +217,7 @@ export class DatabaseStorage implements IStorage {
       targetAudience: article.targetAudience,
       featuredImage: article.featuredImage,
       images: article.images,
+      imageCaptions: article.imageCaptions,
       video: article.video,
       dropboxLink: article.dropboxLink,
       status: article.status,
