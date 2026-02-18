@@ -40,6 +40,7 @@ export default function SubmitStoryPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [imageCaptions, setImageCaptions] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get article ID from URL if editing
@@ -61,6 +62,17 @@ export default function SubmitStoryPage() {
           const imagesList: string[] = JSON.parse(editArticle.images);
           const imageUrls = imagesList.map(img => `/uploads/${img}`);
           setPreviewImageUrls(imageUrls);
+
+          // Handle captions if they exist
+          if (editArticle.imageCaptions) {
+            try {
+              setImageCaptions(JSON.parse(editArticle.imageCaptions));
+            } catch (e) {
+              setImageCaptions(new Array(imagesList.length).fill(""));
+            }
+          } else {
+            setImageCaptions(new Array(imagesList.length).fill(""));
+          }
         } catch (error) {
           console.error('Error parsing images:', error);
         }
@@ -165,6 +177,7 @@ export default function SubmitStoryPage() {
       // Generate preview URLs for new files
       const newPreviewUrls = validFiles.map(file => URL.createObjectURL(file));
       setPreviewImageUrls(prev => [...prev, ...newPreviewUrls]);
+      setImageCaptions(prev => [...prev, ...new Array(validFiles.length).fill("")]);
     }
   };
 
@@ -205,10 +218,19 @@ export default function SubmitStoryPage() {
   const removeImage = (index: number) => {
     const newSelectedFiles = selectedFiles.filter((_, i) => i !== index);
     const newPreviewUrls = previewImageUrls.filter((_, i) => i !== index);
+    const newCaptions = imageCaptions.filter((_, i) => i !== index);
 
     setSelectedFiles(newSelectedFiles);
     setPreviewImageUrls(newPreviewUrls);
+    setImageCaptions(newCaptions);
     form.setValue('imageFiles', newSelectedFiles.length > 0 ? newSelectedFiles : undefined);
+  };
+
+  // Update caption
+  const updateCaption = (index: number, caption: string) => {
+    const newCaptions = [...imageCaptions];
+    newCaptions[index] = caption;
+    setImageCaptions(newCaptions);
   };
 
   // Remove video from selection
@@ -233,6 +255,9 @@ export default function SubmitStoryPage() {
           formData.append(key, values[key as keyof FormValues] as string);
         }
       });
+
+      // Add captions
+      formData.append('imageCaptions', JSON.stringify(imageCaptions));
 
       // Add images if available
       if (values.imageFiles && Array.isArray(values.imageFiles)) {
@@ -471,7 +496,15 @@ export default function SubmitStoryPage() {
                         >
                           ×
                         </Button>
-                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 text-center">
+                        <div className="p-2 bg-neutral-50 border-t border-neutral-light">
+                          <Input
+                            placeholder="Add a caption..."
+                            className="h-7 text-xs"
+                            value={imageCaptions[index] || ""}
+                            onChange={(e) => updateCaption(index, e.target.value)}
+                          />
+                        </div>
+                        <div className="absolute top-0 left-0 right-0 bg-black bg-opacity-50 text-white text-[10px] p-0.5 text-center">
                           {index + 1} of {previewImageUrls.length}
                         </div>
                       </div>
