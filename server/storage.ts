@@ -47,7 +47,7 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.username, username.toLowerCase()));
+      .where(eq(sql`LOWER(${users.username})`, username.toLowerCase()));
     return user;
   }
 
@@ -55,7 +55,7 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.email, email.toLowerCase()));
+      .where(eq(sql`LOWER(${users.email})`, email.toLowerCase()));
     return user;
   }
 
