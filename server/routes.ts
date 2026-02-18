@@ -125,31 +125,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get author information
       const author = await storage.getUser(article.userId);
       
-      // Create a completely new object with explicitly defined properties
-      // This ensures the content is properly serialized
-      const articleWithAuthor = {
-        id: article.id,
-        userId: article.userId,
-        title: article.title,
-        summary: article.summary,
-        // Force content to be a string and handle trimming
-        content: article.content ? String(article.content).trim() : "",
-        category: article.category,
-        keywords: article.keywords,
-        targetAudience: article.targetAudience,
-        featuredImage: article.featuredImage,
-        images: article.images,
-        dropboxLink: article.dropboxLink,
-        status: article.status,
-        wordCount: article.wordCount,
-        createdAt: article.createdAt,
-        updatedAt: article.updatedAt,
-        author: author ? { 
-          id: author.id, 
-          username: author.username, 
-          email: author.email 
-        } : null
-      };
+        // Create a completely new object with explicitly defined properties
+        // This ensures the content is properly serialized
+        const articleWithAuthor = {
+          id: article.id,
+          userId: article.userId,
+          title: article.title,
+          summary: article.summary,
+          // Force content to be a string and handle trimming
+          content: article.content ? String(article.content).trim() : "",
+          category: article.category,
+          keywords: article.keywords,
+          targetAudience: article.targetAudience,
+          featuredImage: article.featuredImage,
+          images: article.images,
+          video: article.video,
+          dropboxLink: article.dropboxLink,
+          status: article.status,
+          wordCount: article.wordCount,
+          createdAt: article.createdAt,
+          updatedAt: article.updatedAt,
+          author: author ? { 
+            id: author.id, 
+            username: author.username, 
+            email: author.email 
+          } : null
+        };
       
       console.log("Sending single article with content info:", {
         id: articleWithAuthor.id,
