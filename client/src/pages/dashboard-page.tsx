@@ -43,6 +43,15 @@ export default function DashboardPage() {
     // Status filter
     const matchesStatus = statusFilter === "all" || article.status === statusFilter;
     
+    // Debug logging
+    console.log("Writer Filter debug:", {
+      articleId: article.id,
+      title: article.title,
+      matchesSearch,
+      matchesCategory,
+      matchesStatus
+    });
+    
     return matchesSearch && matchesCategory && matchesStatus;
   }) : [];
 

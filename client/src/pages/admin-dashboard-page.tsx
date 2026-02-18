@@ -69,19 +69,27 @@ export default function AdminDashboardPage() {
   const [writersSearchTerm, setWritersSearchTerm] = useState("");
 
   // Fetch all articles
-  const { data: articles, isLoading: isLoadingArticles } = useQuery<ArticleWithAuthor[]>({
+  const { data: articles, isLoading: isLoadingArticles, error: articlesError } = useQuery<ArticleWithAuthor[]>({
     queryKey: ["/api/articles"],
   });
 
+  if (articlesError) {
+    console.error("Error fetching articles:", articlesError);
+  }
+
   // Fetch stats
-  const { data: stats, isLoading: isLoadingStats } = useQuery({
+  const { data: stats, isLoading: isLoadingStats, error: statsError } = useQuery({
     queryKey: ["/api/stats"],
   });
+
+  if (statsError) {
+    console.error("Error fetching stats:", statsError);
+  }
 
   // Fetch all users (for writers management and filtering)
   const { data: allUsers, isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
-    enabled: activeTab === "writers" || activeTab === "articles",
+    enabled: true, // Always fetch users to ensure filter works
   });
 
   // Delete article mutation
@@ -125,19 +133,16 @@ export default function AdminDashboardPage() {
     
     // Writer filter - ensure we're comparing the right types
     const matchesWriter = writerFilter === "all" || 
-      (typeof writerFilter === "number" && article.userId === writerFilter);
+      (typeof writerFilter === "number" && Number(article.userId) === Number(writerFilter));
     
     // Debug logging for troubleshooting
-    console.log("Filter debug:", {
+    console.log("Admin Filter debug:", {
       articleId: article.id,
       articleTitle: articleTitle,
-      articleUserId: article.userId,
-      writerFilter,
       matchesSearch,
       matchesCategory,
       matchesStatus,
-      matchesWriter,
-      finalResult: matchesSearch && matchesCategory && matchesStatus && matchesWriter
+      matchesWriter
     });
     
     return matchesSearch && matchesCategory && matchesStatus && matchesWriter;

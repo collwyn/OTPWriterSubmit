@@ -51,6 +51,7 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
+        console.log(`Login attempt for username: ${username}, user found: ${!!user}, isAdmin: ${user?.isAdmin}`);
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false);
         } else {

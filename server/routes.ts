@@ -44,9 +44,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Admin sees all articles, users see only their own
-      const articles = req.user.isAdmin 
+      const articles = (req.user && req.user.isAdmin)
         ? await storage.getAllArticles() 
-        : await storage.getArticlesByUserId(req.user.id);
+        : await storage.getArticlesByUserId(req.user!.id);
+
+      console.log(`Fetched ${articles.length} articles for user ${req.user?.username} (isAdmin: ${req.user?.isAdmin})`);
+      if (req.user?.isAdmin) {
+        console.log("Admin articles sample:", articles.slice(0, 2).map(a => ({ id: a.id, title: a.title, userId: a.userId })));
+      }
 
         // Create a new array with explicit properties to fix serialization issues
         const processedArticles = articles.map(article => {
