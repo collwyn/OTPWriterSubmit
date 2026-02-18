@@ -117,9 +117,17 @@ export default function AuthPage() {
                         Remember me
                       </label>
                     </div>
-                    <a href="#" className="text-sm text-primary hover:text-primary/80">
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto text-sm text-primary hover:text-primary/80"
+                      onClick={() => {
+                        const email = loginForm.getValues("username");
+                        const mailto = `mailto:admin@ourtimepress.com?subject=Password Reset Request&body=Hello Admin,%0D%0A%0D%0AI would like to request a password reset for my account.${email ? `%0D%0A%0D%0AUsername/Email: ${email}` : ""}`;
+                        window.location.href = mailto;
+                      }}
+                    >
                       Forgot password?
-                    </a>
+                    </Button>
                   </div>
 
                   <Button 
