@@ -48,7 +48,7 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
   const params = useParams();
   const { toast } = useToast();
   const [feedback, setFeedback] = useState("");
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
 
   // Get article ID from props or URL params
   const articleId = propId || params.id;
@@ -237,56 +237,65 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                     <div className="p-6">
                       <h3 className="font-medium text-lg mb-4">Article Content</h3>
 
-                  {((article.images && JSON.parse(article.images).length > 0) || article.featuredImage) && (
+                  {((article.images && JSON.parse(article.images).length > 0) || article.featuredImage || article.video) && (
                     <div className="mt-6">
                       <h4 className="text-sm font-medium text-neutral-dark mb-3">
-                        Images {article.images && `(${JSON.parse(article.images).length})`}
+                        Media Gallery
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {article.images ? (
-                          JSON.parse(article.images).map((image: string, index: number) => (
-                            <div key={index} className="relative">
-                              <img 
-                                src={`/uploads/${image}`} 
-                                alt={`Image ${index + 1}`} 
-                                className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light cursor-pointer hover:shadow-md transition-shadow"
-                                onClick={() => setSelectedImage(`/uploads/${image}`)}
-                                onError={(e) => {
-                                  console.error(`Failed to load image: /uploads/${image}`);
-                                  e.currentTarget.style.display = 'none';
-                                  const parent = e.currentTarget.parentElement;
-                                  if (parent) {
-                                    const errorDiv = document.createElement('div');
-                                    errorDiv.className = 'w-full h-48 bg-gray-100 border border-neutral-light rounded-lg flex items-center justify-center text-gray-500';
-                                    errorDiv.innerHTML = '<span>Image not found</span>';
-                                    parent.appendChild(errorDiv);
-                                  }
-                                }}
-                              />
-                              {index === 0 && (
-                                <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">
-                                  Featured
+                        {/* Video Thumbnail if exists */}
+                        {article.video && (
+                          <div className="relative group">
+                            <div 
+                              className="w-full h-48 bg-neutral-900 rounded-lg shadow-sm border border-neutral-light cursor-pointer flex items-center justify-center overflow-hidden"
+                              onClick={() => setSelectedMedia({ url: `/uploads/${article.video}`, type: 'video' })}
+                            >
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                                <div className="bg-white/90 rounded-full p-3 shadow-lg">
+                                  <Eye className="h-6 w-6 text-primary" />
                                 </div>
-                              )}
+                              </div>
+                              <video src={`/uploads/${article.video}`} className="w-full h-full object-cover opacity-60" />
+                              <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded">
+                                VIDEO
+                              </div>
                             </div>
-                          ))
+                          </div>
+                        )}
+
+                        {/* Images */}
+                        {article.images ? (
+                          JSON.parse(article.images).map((image: string, index: number) => {
+                            const captions = article.imageCaptions ? JSON.parse(article.imageCaptions) : [];
+                            const caption = captions[index] || "";
+                            
+                            return (
+                              <div key={index} className="relative group">
+                                <img 
+                                  src={`/uploads/${image}`} 
+                                  alt={caption || `Image ${index + 1}`} 
+                                  className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light cursor-pointer hover:shadow-md transition-shadow"
+                                  onClick={() => setSelectedMedia({ url: `/uploads/${image}`, type: 'image' })}
+                                />
+                                {index === 0 && !article.video && (
+                                  <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">
+                                    Featured
+                                  </div>
+                                )}
+                                {caption && (
+                                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] p-2 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity truncate">
+                                    {caption}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
                         ) : article.featuredImage ? (
-                          <div className="relative">
+                          <div className="relative group">
                             <img 
                               src={`/uploads/${article.featuredImage}`} 
                               alt="Featured image"
-                              onClick={() => setSelectedImage(`/uploads/${article.featuredImage}`)}
-                              onError={(e) => {
-                                console.error(`Failed to load featured image: /uploads/${article.featuredImage}`);
-                                e.currentTarget.style.display = 'none';
-                                const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  const errorDiv = document.createElement('div');
-                                  errorDiv.className = 'w-full h-48 bg-gray-100 border border-neutral-light rounded-lg flex items-center justify-center text-gray-500';
-                                  errorDiv.innerHTML = '<span>Image not found</span>';
-                                  parent.appendChild(errorDiv);
-                                }
-                              }} 
+                              onClick={() => setSelectedMedia({ url: `/uploads/${article.featuredImage}`, type: 'image' })}
                               className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light cursor-pointer hover:shadow-md transition-shadow"
                             />
                             <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">
@@ -508,21 +517,31 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
         </div>
       </main>
 
-      {/* Image Modal */}
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden">
-          <div className="relative">
+      {/* Media Modal (Lightbox) */}
+      <Dialog open={!!selectedMedia} onOpenChange={() => setSelectedMedia(null)}>
+        <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden bg-black/95 border-none">
+          <div className="relative w-full h-full flex items-center justify-center min-h-[50vh]">
             <button
-              onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+              onClick={() => setSelectedMedia(null)}
+              className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 transition-colors"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
-            {selectedImage && (
+            
+            {selectedMedia?.type === 'image' && (
               <img
-                src={selectedImage}
+                src={selectedMedia.url}
                 alt="Full size view"
                 className="w-full h-auto max-h-[90vh] object-contain"
+              />
+            )}
+            
+            {selectedMedia?.type === 'video' && (
+              <video
+                src={selectedMedia.url}
+                controls
+                autoPlay
+                className="w-full h-auto max-h-[90vh]"
               />
             )}
           </div>
