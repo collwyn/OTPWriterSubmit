@@ -299,15 +299,6 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                   )}
 
                       <div className="prose max-w-none">
-                        {/* Debug info */}
-                        {process.env.NODE_ENV === 'development' && (
-                          <div className="mb-3 text-xs text-muted-foreground">
-                            Content type: {typeof article.content}<br />
-                            Property exists: {'content' in article ? 'Yes' : 'No'}<br />
-                            Content length: {String(article.content || '').length}
-                          </div>
-                        )}
-
                         {(() => {
                           // Explicitly extract content safely from the article
                           let contentStr = "";
@@ -322,11 +313,6 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                           const paragraphs = contentTrimmed.split('\n')
                             .map(p => p.trim())
                             .filter(p => p.length > 0);
-
-                          console.log(`Processing content for article ID ${articleId}`, { 
-                            contentLength: contentStr.length,
-                            paragraphCount: paragraphs.length
-                          });
 
                           if (paragraphs.length === 0) {
                             return <p className="text-muted-foreground">No content available.</p>;
