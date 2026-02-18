@@ -221,6 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...req.body,
           featuredImage,
           images: images.length > 0 ? JSON.stringify(images) : null,
+          imageCaptions: req.body.imageCaptions || null,
           video,
           wordCount
         });
@@ -318,6 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...req.body,
           featuredImage,
           images: existingImages.length > 0 ? JSON.stringify(existingImages) : null,
+          imageCaptions: req.body.imageCaptions || article.imageCaptions,
           video,
           wordCount
         });
