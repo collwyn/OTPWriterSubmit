@@ -48,28 +48,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? await storage.getAllArticles() 
         : await storage.getArticlesByUserId(req.user.id);
 
-      // Create a new array with explicit properties to fix serialization issues
-      const processedArticles = articles.map(article => {
-        // Explicitly construct a new object to avoid any potential serialization issues
-        return {
-          id: article.id,
-          userId: article.userId,
-          title: article.title,
-          summary: article.summary,
-          // Force content to be a string
-          content: article.content ? String(article.content) : "",
-          category: article.category,
-          keywords: article.keywords,
-          targetAudience: article.targetAudience,
-          featuredImage: article.featuredImage,
-          images: article.images,
-          dropboxLink: article.dropboxLink,
-          status: article.status,
-          wordCount: article.wordCount,
-          createdAt: article.createdAt,
-          updatedAt: article.updatedAt
-        };
-      });
+        // Create a new array with explicit properties to fix serialization issues
+        const processedArticles = articles.map(article => {
+          // Explicitly construct a new object to avoid any potential serialization issues
+          return {
+            id: article.id,
+            userId: article.userId,
+            title: article.title,
+            summary: article.summary,
+            // Force content to be a string
+            content: article.content ? String(article.content) : "",
+            category: article.category,
+            keywords: article.keywords,
+            targetAudience: article.targetAudience,
+            featuredImage: article.featuredImage,
+            images: article.images,
+            imageCaptions: article.imageCaptions,
+            video: article.video,
+            dropboxLink: article.dropboxLink,
+            status: article.status,
+            wordCount: article.wordCount,
+            createdAt: article.createdAt,
+            updatedAt: article.updatedAt
+          };
+        });
       
       // Get user information for each article (for admin view)
       const articlesWithUserInfo = await Promise.all(processedArticles.map(async (article) => {
@@ -139,6 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           targetAudience: article.targetAudience,
           featuredImage: article.featuredImage,
           images: article.images,
+          imageCaptions: article.imageCaptions,
           video: article.video,
           dropboxLink: article.dropboxLink,
           status: article.status,

@@ -22,6 +22,7 @@ export const articles = pgTable("articles", {
   targetAudience: text("target_audience"),
   featuredImage: text("featured_image"),
   images: text("images"), // JSON string array of additional image filenames
+  imageCaptions: text("image_captions"), // JSON string array of captions matching the images array
   video: text("video"), // MP4 video filename
   dropboxLink: text("dropbox_link"),
   status: text("status").default("draft").notNull(),
@@ -53,6 +54,7 @@ export const insertArticleSchema = z.object({
   status: z.enum(["draft", "underReview", "approved", "rejected"]).default("draft"),
   featuredImage: z.string().optional(),
   images: z.string().optional(), // JSON string of image filenames array
+  imageCaptions: z.string().optional(), // JSON string of captions array
   video: z.string().optional(), // MP4 video filename
   dropboxLink: z.string().optional(),
   wordCount: z.number().optional(),
