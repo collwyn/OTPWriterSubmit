@@ -21,8 +21,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 
-// Extended schema with file validation
 const extendedSchema = insertArticleSchema.extend({
+  title: z.string().min(1, "Title is required").max(200),
+  summary: z.string().min(1, "Summary is required").max(500),
+  content: z.string().min(1, "Content is required"),
+  category: z.string().min(1, "Category is required"),
   imageFiles: z.any().optional(),
   videoFile: z.any().optional(),
 });
