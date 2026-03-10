@@ -38,6 +38,12 @@ Created with proper password hashing:
 - lyndon.t2003@gmail.com
 
 ## Recent Changes
+- **2026-03-10**: Fixed image persistence bug
+  - Modified POST and PATCH article handlers to use Dropbox links when available
+  - Added fallback to local file paths if Dropbox upload fails
+  - Updated console message to clearly indicate images won't persist without DROPBOX_ACCESS_TOKEN
+  - Images now properly persist across server restarts when Dropbox token is configured
+  - Added dynamic media gallery with lightbox for viewing images and videos
 - **2025-01-26**: Implemented SendGrid email notification system
   - Integrated SendGrid API for professional email delivery
   - Created beautifully designed HTML email templates

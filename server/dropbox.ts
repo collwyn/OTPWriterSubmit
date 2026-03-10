@@ -11,7 +11,7 @@ export function initDropbox() {
   const accessToken = process.env.DROPBOX_ACCESS_TOKEN;
   
   if (!accessToken) {
-    console.warn('Dropbox access token not found. Dropbox integration will be unavailable.');
+    console.error('CRITICAL: Dropbox access token not found (DROPBOX_ACCESS_TOKEN env var). Uploaded images will NOT persist across server restarts.');
     return null;
   }
   

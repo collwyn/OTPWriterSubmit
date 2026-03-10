@@ -188,11 +188,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               file.filename
             );
             
+            // Use Dropbox link if available, otherwise fall back to local file path
+            const fileRef = dropboxLink || `/uploads/${file.filename}`;
+            
             // Separate videos from images
             if (file.mimetype === 'video/mp4') {
-              video = file.filename;
+              video = fileRef;
             } else {
-              images.push(file.filename);
+              images.push(fileRef);
             }
           }
           
@@ -279,11 +282,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               file.filename
             );
             
+            // Use Dropbox link if available, otherwise fall back to local file path
+            const fileRef = dropboxLink || `/uploads/${file.filename}`;
+            
             // Separate videos from images
             if (file.mimetype === 'video/mp4') {
-              video = file.filename;
+              video = fileRef;
             } else {
-              newImages.push(file.filename);
+              newImages.push(fileRef);
             }
           }
           
