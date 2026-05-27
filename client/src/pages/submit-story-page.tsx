@@ -468,13 +468,23 @@ export default function SubmitStoryPage() {
                     </Button>
                   </div>
                 </div>
-                <Textarea
-                  id="content"
-                  placeholder="Write your story here or paste from a document"
-                  className="block w-full min-h-[300px] border-0 focus-visible:ring-0 resize-vertical p-3"
-                  rows={12}
-                  value={form.getValues('content')}
-                  onChange={(e) => form.setValue('content', e.target.value, { shouldValidate: true })}
+                <FormField
+                  control={form.control}
+                  name="content"
+                  render={({ field }) => (
+                    <FormItem className="w-full">
+                      <FormControl>
+                        <Textarea
+                          id="content"
+                          placeholder="Write your story here or paste from a document"
+                          className="block w-full min-h-[300px] border-0 focus-visible:ring-0 resize-vertical p-3"
+                          rows={12}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-1">
