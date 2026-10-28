@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import express from "express";
-import { createServer, type Server } from "http";
+import { createServer, type IncomingMessage, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { sendSubmissionNotification } from "./email";
@@ -11,9 +11,8 @@ import { Client, StreamRequestError } from "@replit/object-storage";
 import { insertArticleSchema, updateArticleSchema } from "@shared/schema";
 import { validateRequest } from "zod-express-middleware";
 import fs from "fs";
-import os from "os";
 import path from "path";
-import { pipeline } from "stream/promises";
+import type { Readable } from "stream";
 
 type UploadedArticleFile = { path: string; filename: string };
 type UploadedArticleFields = { images?: UploadedArticleFile[]; video?: UploadedArticleFile[] };
@@ -46,77 +45,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader("Accept-Ranges", "bytes");
 
       const rangeHeader = req.headers.range;
-      if (!rangeHeader) {
-        const mediaStream = new Client().downloadAsStream(key);
-        mediaStream.on("error", (error) => {
-          const statusCode = error instanceof StreamRequestError
-            ? error.getRequestError().statusCode
-            : undefined;
-          if (!res.headersSent) {
-            res.status(statusCode === 404 ? 404 : 500).end();
-          } else {
-            res.destroy(error);
-          }
-        });
-        mediaStream.pipe(res);
-        return;
-      }
-
-      let tempDir: string | undefined;
-      try {
-        tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "media-range-"));
-        const tempFile = path.join(tempDir, "media.mp4");
-        await pipeline(new Client().downloadAsStream(key), fs.createWriteStream(tempFile));
-        const fileSize = (await fs.promises.stat(tempFile)).size;
+      // The SDK forwards these options to the storage read stream.
+      const streamOptions: { decompress: boolean; start?: number; end?: number } = { decompress: true };
+      if (rangeHeader) {
         const rangeMatch = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader);
-
-        if (!rangeMatch || fileSize === 0 || (!rangeMatch[1] && !rangeMatch[2])) {
-          res.setHeader("Content-Range", `bytes */${fileSize}`);
-          res.setHeader("Content-Length", "0");
+        if (!rangeMatch || (!rangeMatch[1] && !rangeMatch[2])) {
           return res.status(416).end();
         }
-
-        let start: number;
-        let end: number;
         if (!rangeMatch[1]) {
           const suffixLength = Number(rangeMatch[2]);
           if (!Number.isSafeInteger(suffixLength) || suffixLength <= 0) {
-            res.setHeader("Content-Range", `bytes */${fileSize}`);
-            res.setHeader("Content-Length", "0");
             return res.status(416).end();
           }
-          start = Math.max(fileSize - suffixLength, 0);
-          end = fileSize - 1;
+          streamOptions.end = -suffixLength;
         } else {
-          start = Number(rangeMatch[1]);
-          end = rangeMatch[2] ? Number(rangeMatch[2]) : fileSize - 1;
-          if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start >= fileSize || start > end) {
-            res.setHeader("Content-Range", `bytes */${fileSize}`);
-            res.setHeader("Content-Length", "0");
+          streamOptions.start = Number(rangeMatch[1]);
+          if (rangeMatch[2]) streamOptions.end = Number(rangeMatch[2]);
+          if (
+            !Number.isSafeInteger(streamOptions.start) ||
+            (streamOptions.end !== undefined &&
+              (!Number.isSafeInteger(streamOptions.end) || streamOptions.start > streamOptions.end))
+          ) {
             return res.status(416).end();
           }
-          end = Math.min(end, fileSize - 1);
         }
+      }
 
-        res.status(206);
-        res.setHeader("Content-Range", `bytes ${start}-${end}/${fileSize}`);
-        res.setHeader("Content-Length", String(end - start + 1));
-        await pipeline(fs.createReadStream(tempFile, { start, end }), res);
-      } catch (error) {
+      const mediaStream = new Client().downloadAsStream(key, streamOptions);
+      let storageStream: Readable | undefined;
+      // The SDK's wrapper does not forward response headers, so listen on its source stream.
+      mediaStream.once("pipe", (source: Readable) => {
+        storageStream = source;
+        source.once("response", (response: IncomingMessage) => {
+          const contentRange = response.headers["content-range"];
+          if (response.statusCode === 416) {
+            if (contentRange) res.setHeader("Content-Range", contentRange);
+            res.setHeader("Content-Length", "0");
+            res.status(416).end();
+            return;
+          }
+          if (response.statusCode && response.statusCode >= 400) return;
+          if (rangeHeader && contentRange) {
+            res.status(206);
+            res.setHeader("Content-Range", contentRange);
+          }
+          const contentLength = response.headers["content-length"];
+          if (contentLength) res.setHeader("Content-Length", contentLength);
+        });
+        if (res.destroyed) source.destroy();
+      });
+      mediaStream.on("error", (error) => {
+        if (res.writableEnded) return;
         const statusCode = error instanceof StreamRequestError
           ? error.getRequestError().statusCode
           : undefined;
         if (!res.headersSent) {
-          if (statusCode === 404) return res.status(404).end();
-          console.error(`Failed to load media object ${key}:`, error);
-          return res.status(500).json({ message: "Failed to load media file" });
+          res.status(statusCode === 404 ? 404 : statusCode === 416 ? 416 : 500).end();
+        } else {
+          res.destroy(error);
         }
-        res.destroy(error as Error);
-      } finally {
-        if (tempDir) {
-          await fs.promises.rm(tempDir, { recursive: true, force: true });
-        }
-      }
+      });
+      res.on("close", () => {
+        mediaStream.destroy();
+        storageStream?.destroy();
+      });
+      mediaStream.pipe(res);
       return;
     }
 
