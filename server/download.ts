@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { Request, Response } from 'express';
 import { Article, User } from '@shared/schema';
+import { getFile } from './storage-files';
 
 /**
  * Creates a zip archive of an article and its images
@@ -91,6 +92,15 @@ export async function downloadArticleAsZip(article: Article, user: User, res: Re
     
     // Add all images to the archive
     for (const imageName of imagesToInclude) {
+      if (imageName.startsWith('/media/')) {
+        const key = imageName.slice('/media/'.length);
+        console.log(`Adding image from Object Storage to archive: ${key}`);
+        archive.append(await getFile(key), {
+          name: `images/${path.basename(key)}`
+        });
+        continue;
+      }
+
       const imagePath = path.join(process.cwd(), 'uploads', imageName);
       
       // Check if image exists in uploads directory
@@ -111,6 +121,14 @@ export async function downloadArticleAsZip(article: Article, user: User, res: Re
           console.warn(`Image file not found in uploads or attached_assets: ${imageName}`);
         }
       }
+    }
+
+    if (article.video?.startsWith('/media/')) {
+      const key = article.video.slice('/media/'.length);
+      console.log(`Adding video from Object Storage to archive: ${key}`);
+      archive.append(await getFile(key), {
+        name: `videos/${path.basename(key)}`
+      });
     }
     
     console.log(`Total images added to archive: ${imagesToInclude.length}`);

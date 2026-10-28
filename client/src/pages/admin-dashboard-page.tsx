@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getMediaUrl } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
@@ -385,7 +386,7 @@ export default function AdminDashboardPage() {
                             <div className="flex-shrink-0 h-10 w-10">
                               {article.featuredImage || (article.images && JSON.parse(article.images || '[]').length > 0) ? (
                                 <img 
-                                  src={`/uploads/${article.featuredImage || (article.images ? JSON.parse(article.images)[0] : '')}`} 
+                                  src={getMediaUrl(article.featuredImage || (article.images ? JSON.parse(article.images)[0] : ''))}
                                   alt="" 
                                   className="h-10 w-10 rounded object-cover"
                                   onError={(e) => {

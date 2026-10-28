@@ -1,7 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 
 // Ensure upload directory exists
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -32,21 +32,43 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
   }
 };
 
-// Create multer upload instance with size limit of 10MB per file, max 10 files
+// Create multer upload instance with a 200MB maximum per file and 11 files total.
 export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB in bytes per file
-    files: 10, // Maximum 10 files
+    fileSize: 200 * 1024 * 1024, // 200MB in bytes per file
+    files: 11, // Maximum 10 images and 1 video
   }
 });
+
+export const validateImageFileSize = (req: Request, res: Response, next: NextFunction) => {
+  const uploadedFiles = (req as Request & {
+    files?: { images?: Array<{ path: string; size: number }>; video?: Array<{ path: string; size: number }> };
+  }).files;
+  const images = uploadedFiles?.images || [];
+
+  if (images.some((file) => file.size > 10 * 1024 * 1024)) {
+    const allFiles = Object.values(uploadedFiles || {}).flat();
+    for (const file of allFiles) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch (error) {
+        console.error('Failed to remove oversized upload:', error);
+      }
+    }
+
+    return res.status(400).json({ message: 'Image files must be 10MB or smaller.' });
+  }
+
+  next();
+};
 
 // Handle file upload errors
 export const handleUploadError = (err: any, req: Request, res: Response, next: (error?: any) => void) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ message: 'File too large. Maximum size is 10MB.' });
+      return res.status(400).json({ message: 'File too large. Images must be 10MB or smaller; videos must be 200MB or smaller.' });
     }
     return res.status(400).json({ message: `Upload error: ${err.message}` });
   } else if (err) {

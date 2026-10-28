@@ -17,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { insertArticleSchema, Article } from "@shared/schema";
 import { ArrowLeft, ArrowRight, Save, Upload, Link, Check, Bold, Italic, Underline, Heading, Quote, List, Image } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getMediaUrl } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -72,7 +73,7 @@ export default function SubmitStoryPage() {
       if (editArticle.images) {
         try {
           const imagesList: string[] = JSON.parse(editArticle.images);
-          const imageUrls = imagesList.map(img => `/uploads/${img}`);
+          const imageUrls = imagesList.map(img => getMediaUrl(img));
           setPreviewImageUrls(imageUrls);
 
           // Handle captions if they exist
@@ -90,12 +91,12 @@ export default function SubmitStoryPage() {
         }
       } else if (editArticle.featuredImage) {
         // Backward compatibility for single featured image
-        setPreviewImageUrls([`/uploads/${editArticle.featuredImage}`]);
+        setPreviewImageUrls([getMediaUrl(editArticle.featuredImage)]);
       }
 
       // If article has video, set preview
       if (editArticle.video) {
-        setVideoPreviewUrl(`/uploads/${editArticle.video}`);
+        setVideoPreviewUrl(getMediaUrl(editArticle.video));
         // Note: We don't store the File object for existing videos directly,
         // as it's already on the server. We only handle new uploads.
       }
@@ -210,11 +211,11 @@ export default function SubmitStoryPage() {
       return;
     }
 
-    // Validate file size (5GB)
-    if (file.size > 5 * 1024 * 1024 * 1024) {
+    // Validate file size (200MB)
+    if (file.size > 200 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Video files must be 5GB or smaller.",
+        description: "Video files must be 200MB or smaller.",
         variant: "destructive",
       });
       return;
@@ -574,7 +575,7 @@ export default function SubmitStoryPage() {
             </FormItem>
 
             <FormItem>
-              <FormLabel>Video (MP4, up to 5GB) <span className="text-secondary">*</span></FormLabel>
+              <FormLabel>Video (MP4, up to 200MB) <span className="text-secondary">*</span></FormLabel>
               <div className="space-y-4">
                 {videoPreviewUrl && (
                   <div className="relative group border border-neutral-light rounded-md overflow-hidden">
@@ -617,7 +618,7 @@ export default function SubmitStoryPage() {
                         <p className="pl-1">or drag and drop</p>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        MP4 only, up to 5GB
+                        MP4 only, up to 200MB
                       </p>
                     </div>
                   </div>

@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getMediaUrl } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -248,14 +249,14 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                           <div className="relative group">
                             <div 
                               className="w-full h-48 bg-neutral-900 rounded-lg shadow-sm border border-neutral-light cursor-pointer flex items-center justify-center overflow-hidden"
-                              onClick={() => setSelectedMedia({ url: `/uploads/${article.video}`, type: 'video' })}
+                              onClick={() => setSelectedMedia({ url: getMediaUrl(article.video!), type: 'video' })}
                             >
                               <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
                                 <div className="bg-white/90 rounded-full p-3 shadow-lg">
                                   <Eye className="h-6 w-6 text-primary" />
                                 </div>
                               </div>
-                              <video src={`/uploads/${article.video}`} className="w-full h-full object-cover opacity-60" />
+                              <video src={getMediaUrl(article.video)} className="w-full h-full object-cover opacity-60" />
                               <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded">
                                 VIDEO
                               </div>
@@ -272,10 +273,10 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                             return (
                               <div key={index} className="relative group">
                                 <img 
-                                  src={`/uploads/${image}`} 
+                                  src={getMediaUrl(image)}
                                   alt={caption || `Image ${index + 1}`} 
                                   className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light cursor-pointer hover:shadow-md transition-shadow"
-                                  onClick={() => setSelectedMedia({ url: `/uploads/${image}`, type: 'image' })}
+                                  onClick={() => setSelectedMedia({ url: getMediaUrl(image), type: 'image' })}
                                 />
                                 {index === 0 && !article.video && (
                                   <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">
@@ -293,9 +294,9 @@ export default function ReviewSubmissionPage({ id: propId }: ReviewSubmissionPag
                         ) : article.featuredImage ? (
                           <div className="relative group">
                             <img 
-                              src={`/uploads/${article.featuredImage}`} 
+                              src={getMediaUrl(article.featuredImage)}
                               alt="Featured image"
-                              onClick={() => setSelectedMedia({ url: `/uploads/${article.featuredImage}`, type: 'image' })}
+                              onClick={() => setSelectedMedia({ url: getMediaUrl(article.featuredImage!), type: 'image' })}
                               className="w-full h-48 object-cover rounded-lg shadow-sm border border-neutral-light cursor-pointer hover:shadow-md transition-shadow"
                             />
                             <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">

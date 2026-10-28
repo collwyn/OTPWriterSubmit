@@ -3,14 +3,19 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { uploadToDropbox, createUserFolder } from "./dropbox";
 import { sendSubmissionNotification } from "./email";
-import { upload, handleUploadError } from "./multer";
+import { upload, validateImageFileSize, handleUploadError } from "./multer";
 import { downloadArticleAsZip } from "./download";
+import { getFile, saveFile } from "./storage-files";
+import { Client } from "@replit/object-storage";
 import { insertArticleSchema, updateArticleSchema } from "@shared/schema";
 import { validateRequest } from "zod-express-middleware";
 import fs from "fs";
 import path from "path";
+
+type UploadedArticleFile = { path: string; filename: string };
+type UploadedArticleFields = { images?: UploadedArticleFile[]; video?: UploadedArticleFile[] };
+const objectStorage = new Client();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
@@ -18,6 +23,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+  app.get("/media/*", async (req: Request, res: Response) => {
+    const key = req.params[0];
+    if (!key) {
+      return res.status(404).end();
+    }
+
+    try {
+      const contents = await getFile(key);
+      const contentType = path.extname(key).toLowerCase() === ".mp4" ? "video/mp4" : "image/jpeg";
+      res.setHeader("Content-Type", contentType);
+      res.send(contents);
+    } catch (error) {
+      if (typeof error === "object" && error !== null && "statusCode" in error && error.statusCode === 404) {
+        return res.status(404).end();
+      }
+      console.error(`Failed to load media object ${key}:`, error);
+      res.status(500).json({ message: "Failed to load media file" });
+    }
+  });
 
   // User routes
   app.get("/api/users", async (req: Request, res: Response) => {
@@ -161,7 +186,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(
     "/api/articles",
-    upload.array("images", 10), // Accept up to 10 images
+    upload.fields([
+      { name: "images", maxCount: 10 },
+      { name: "video", maxCount: 1 },
+    ]),
+    validateImageFileSize,
     handleUploadError,
     validateRequest({ body: insertArticleSchema }),
     async (req: Request, res: Response) => {
@@ -175,27 +204,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let images: string[] = [];
         let video: string | null = null;
         
-        if (req.files && Array.isArray(req.files)) {
-          // Create Dropbox folder for user if needed
-          await createUserFolder(req.user.id);
-          
-          // Process each uploaded file
-          for (const file of req.files) {
-            // Upload to Dropbox if integration is available
-            const dropboxLink = await uploadToDropbox(
-              file.path,
-              req.user.id,
-              file.filename
-            );
-            
-            // Use Dropbox link if available, otherwise fall back to local file path
-            const fileRef = dropboxLink || `/uploads/${file.filename}`;
-            
-            // Separate videos from images
-            if (file.mimetype === 'video/mp4') {
-              video = fileRef;
-            } else {
-              images.push(fileRef);
+        const uploadedFiles = (req as Request & { files?: UploadedArticleFields }).files;
+        const imageFiles = uploadedFiles?.images || [];
+        const videoFiles = uploadedFiles?.video || [];
+
+        if (imageFiles.length > 0 || videoFiles.length > 0) {
+          // Process uploaded images
+          for (const file of imageFiles) {
+            try {
+              const key = await saveFile(file.path, `submissions/user_${req.user.id}/${file.filename}`);
+              images.push(`/media/${key}`);
+            } catch (error) {
+              console.error("Failed to save submitted image:", error);
+              return res.status(500).json({ message: "A file could not be saved. Please try again." });
+            }
+          }
+
+          // Process uploaded video
+          for (const file of videoFiles) {
+            try {
+              const key = await saveFile(file.path, `submissions/user_${req.user.id}/${file.filename}`);
+              video = `/media/${key}`;
+            } catch (error) {
+              console.error("Failed to save submitted video:", error);
+              return res.status(500).json({ message: "A file could not be saved. Please try again." });
             }
           }
           
@@ -242,7 +274,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch(
     "/api/articles/:id",
-    upload.array("images", 10), // Accept up to 10 images
+    upload.fields([
+      { name: "images", maxCount: 10 },
+      { name: "video", maxCount: 1 },
+    ]),
+    validateImageFileSize,
     handleUploadError,
     validateRequest({ body: updateArticleSchema }),
     async (req: Request, res: Response) => {
@@ -269,27 +305,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let newImages: string[] = [];
         let video = article.video;
         
-        if (req.files && Array.isArray(req.files)) {
-          // Create user folder in Dropbox if needed
-          await createUserFolder(req.user.id);
-          
-          // Process each uploaded file
-          for (const file of req.files) {
-            // Upload to Dropbox if integration is available
-            const dropboxLink = await uploadToDropbox(
-              file.path,
-              req.user.id,
-              file.filename
-            );
-            
-            // Use Dropbox link if available, otherwise fall back to local file path
-            const fileRef = dropboxLink || `/uploads/${file.filename}`;
-            
-            // Separate videos from images
-            if (file.mimetype === 'video/mp4') {
-              video = fileRef;
-            } else {
-              newImages.push(fileRef);
+        const uploadedFiles = (req as Request & { files?: UploadedArticleFields }).files;
+        const imageFiles = uploadedFiles?.images || [];
+        const videoFiles = uploadedFiles?.video || [];
+
+        if (imageFiles.length > 0 || videoFiles.length > 0) {
+          // Process uploaded images
+          for (const file of imageFiles) {
+            try {
+              const key = await saveFile(file.path, `submissions/user_${req.user.id}/${file.filename}`);
+              newImages.push(`/media/${key}`);
+            } catch (error) {
+              console.error("Failed to save submitted image:", error);
+              return res.status(500).json({ message: "A file could not be saved. Please try again." });
+            }
+          }
+
+          // Process uploaded video
+          for (const file of videoFiles) {
+            try {
+              const key = await saveFile(file.path, `submissions/user_${req.user.id}/${file.filename}`);
+              video = `/media/${key}`;
+            } catch (error) {
+              console.error("Failed to save submitted video:", error);
+              return res.status(500).json({ message: "A file could not be saved. Please try again." });
             }
           }
           
@@ -448,6 +487,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Delete all associated files
       for (const fileName of filesToDelete) {
+        if (fileName.startsWith("/media/")) {
+          const key = fileName.slice("/media/".length);
+          const result = await objectStorage.delete(key, { ignoreNotFound: true });
+          if (!result.ok) {
+            throw new Error(`Failed to delete media object ${key}: ${result.error.message}`);
+          }
+          console.log(`Deleted media object: ${key}`);
+          continue;
+        }
+
         const fullPath = path.join(process.cwd(), "uploads", fileName);
         if (fs.existsSync(fullPath)) {
           try {
