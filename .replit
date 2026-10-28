@@ -38,3 +38,6 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_sendgrid:1.0.0"]
+
+[objectStorage]
+defaultBucketID = "replit-objstore-5b343023-0657-45ba-84f6-989068188324"
