@@ -15,7 +15,6 @@ import path from "path";
 
 type UploadedArticleFile = { path: string; filename: string };
 type UploadedArticleFields = { images?: UploadedArticleFile[]; video?: UploadedArticleFile[] };
-const objectStorage = new Client();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
@@ -489,6 +488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const fileName of filesToDelete) {
         if (fileName.startsWith("/media/")) {
           const key = fileName.slice("/media/".length);
+          const objectStorage = new Client();
           const result = await objectStorage.delete(key, { ignoreNotFound: true });
           if (!result.ok) {
             throw new Error(`Failed to delete media object ${key}: ${result.error.message}`);

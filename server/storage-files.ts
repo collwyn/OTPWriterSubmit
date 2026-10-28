@@ -1,11 +1,10 @@
 import { Client } from "@replit/object-storage";
 import fs from "node:fs/promises";
 
-const objectStorage = new Client();
-
 export async function saveFile(localFilePath: string, key: string): Promise<string> {
   try {
     const contents = await fs.readFile(localFilePath);
+    const objectStorage = new Client();
     const result = await objectStorage.uploadFromBytes(key, contents);
 
     if (!result.ok) {
@@ -21,6 +20,7 @@ export async function saveFile(localFilePath: string, key: string): Promise<stri
 }
 
 export async function getFile(key: string): Promise<Buffer> {
+  const objectStorage = new Client();
   const result = await objectStorage.downloadAsBytes(key);
   if (!result.ok) {
     throw result.error;

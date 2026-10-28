@@ -1,0 +1,1 @@
+- [App Storage initialization](app-storage-initialization.md) — SDK installation does not guarantee a default bucket; avoid eager client initialization.
