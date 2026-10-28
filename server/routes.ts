@@ -7,11 +7,13 @@ import { sendSubmissionNotification } from "./email";
 import { upload, validateImageFileSize, handleUploadError } from "./multer";
 import { downloadArticleAsZip } from "./download";
 import { getFile, saveFile } from "./storage-files";
-import { Client } from "@replit/object-storage";
+import { Client, StreamRequestError } from "@replit/object-storage";
 import { insertArticleSchema, updateArticleSchema } from "@shared/schema";
 import { validateRequest } from "zod-express-middleware";
 import fs from "fs";
+import os from "os";
 import path from "path";
+import { pipeline } from "stream/promises";
 
 type UploadedArticleFile = { path: string; filename: string };
 type UploadedArticleFields = { images?: UploadedArticleFile[]; video?: UploadedArticleFile[] };
@@ -29,10 +31,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).end();
     }
 
+    const extension = path.extname(key).toLowerCase();
+    const contentTypes: Record<string, string> = {
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".webp": "image/webp",
+      ".mp4": "video/mp4",
+    };
+    const contentType = contentTypes[extension] || "application/octet-stream";
+
+    if (extension === ".mp4") {
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Accept-Ranges", "bytes");
+
+      const rangeHeader = req.headers.range;
+      if (!rangeHeader) {
+        const mediaStream = new Client().downloadAsStream(key);
+        mediaStream.on("error", (error) => {
+          const statusCode = error instanceof StreamRequestError
+            ? error.getRequestError().statusCode
+            : undefined;
+          if (!res.headersSent) {
+            res.status(statusCode === 404 ? 404 : 500).end();
+          } else {
+            res.destroy(error);
+          }
+        });
+        mediaStream.pipe(res);
+        return;
+      }
+
+      let tempDir: string | undefined;
+      try {
+        tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "media-range-"));
+        const tempFile = path.join(tempDir, "media.mp4");
+        await pipeline(new Client().downloadAsStream(key), fs.createWriteStream(tempFile));
+        const fileSize = (await fs.promises.stat(tempFile)).size;
+        const rangeMatch = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader);
+
+        if (!rangeMatch || fileSize === 0 || (!rangeMatch[1] && !rangeMatch[2])) {
+          res.setHeader("Content-Range", `bytes */${fileSize}`);
+          res.setHeader("Content-Length", "0");
+          return res.status(416).end();
+        }
+
+        let start: number;
+        let end: number;
+        if (!rangeMatch[1]) {
+          const suffixLength = Number(rangeMatch[2]);
+          if (!Number.isSafeInteger(suffixLength) || suffixLength <= 0) {
+            res.setHeader("Content-Range", `bytes */${fileSize}`);
+            res.setHeader("Content-Length", "0");
+            return res.status(416).end();
+          }
+          start = Math.max(fileSize - suffixLength, 0);
+          end = fileSize - 1;
+        } else {
+          start = Number(rangeMatch[1]);
+          end = rangeMatch[2] ? Number(rangeMatch[2]) : fileSize - 1;
+          if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start >= fileSize || start > end) {
+            res.setHeader("Content-Range", `bytes */${fileSize}`);
+            res.setHeader("Content-Length", "0");
+            return res.status(416).end();
+          }
+          end = Math.min(end, fileSize - 1);
+        }
+
+        res.status(206);
+        res.setHeader("Content-Range", `bytes ${start}-${end}/${fileSize}`);
+        res.setHeader("Content-Length", String(end - start + 1));
+        await pipeline(fs.createReadStream(tempFile, { start, end }), res);
+      } catch (error) {
+        const statusCode = error instanceof StreamRequestError
+          ? error.getRequestError().statusCode
+          : undefined;
+        if (!res.headersSent) {
+          if (statusCode === 404) return res.status(404).end();
+          console.error(`Failed to load media object ${key}:`, error);
+          return res.status(500).json({ message: "Failed to load media file" });
+        }
+        res.destroy(error as Error);
+      } finally {
+        if (tempDir) {
+          await fs.promises.rm(tempDir, { recursive: true, force: true });
+        }
+      }
+      return;
+    }
+
     try {
       const contents = await getFile(key);
-      const contentType = path.extname(key).toLowerCase() === ".mp4" ? "video/mp4" : "image/jpeg";
       res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", String(contents.length));
+      res.setHeader("Cache-Control", "public, max-age=86400");
       res.send(contents);
     } catch (error) {
       if (typeof error === "object" && error !== null && "statusCode" in error && error.statusCode === 404) {

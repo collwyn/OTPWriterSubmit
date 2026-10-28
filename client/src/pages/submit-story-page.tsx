@@ -156,13 +156,13 @@ export default function SubmitStoryPage() {
 
     for (const file of files) {
       // Validate file type
-      if (!['image/jpeg', 'image/jpg'].includes(file.type)) {
+      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
         invalidFiles.push(`${file.name} (invalid type)`);
         continue;
       }
 
-      // Validate file size (4MB)
-      if (file.size > 4 * 1024 * 1024) {
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
         invalidFiles.push(`${file.name} (too large)`);
         continue;
       }
@@ -174,7 +174,7 @@ export default function SubmitStoryPage() {
     if (invalidFiles.length > 0) {
       toast({
         title: "Some files were rejected",
-        description: `Invalid files: ${invalidFiles.join(', ')}. Only JPG images under 4MB are allowed.`,
+        description: `Invalid files: ${invalidFiles.join(', ')}. Only JPG, PNG and WEBP images up to 10MB are allowed.`,
         variant: "destructive",
       });
     }
@@ -552,13 +552,13 @@ export default function SubmitStoryPage() {
                             multiple
                             className="sr-only"
                             onChange={handleImageFileChange}
-                            accept=".jpg,.jpeg"
+                            accept=".jpg,.jpeg,.png,.webp"
                           />
                         </label>
                         <p className="pl-1">or drag and drop</p>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        JPG only, up to 4MB each, maximum 10 images
+                        JPG, PNG and WEBP, up to 10MB each, maximum 10 images
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Current: {previewImageUrls.length}/10 images

@@ -22,13 +22,19 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter to allow JPG images and MP4 videos
+// File filter to allow JPG, PNG, WEBP images and MP4 videos
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  // Accept jpg/jpeg images or mp4 videos
-  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg' || file.mimetype === 'video/mp4') {
+  // Accept jpg/jpeg, png, webp images or mp4 videos
+  if (
+    file.mimetype === 'image/jpeg' ||
+    file.mimetype === 'image/jpg' ||
+    file.mimetype === 'image/png' ||
+    file.mimetype === 'image/webp' ||
+    file.mimetype === 'video/mp4'
+  ) {
     cb(null, true);
   } else {
-    cb(new Error('Only JPG images and MP4 videos are allowed'));
+    cb(new Error('Only JPG, PNG and WEBP images and MP4 videos are allowed'));
   }
 };
 

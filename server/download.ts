@@ -95,9 +95,13 @@ export async function downloadArticleAsZip(article: Article, user: User, res: Re
       if (imageName.startsWith('/media/')) {
         const key = imageName.slice('/media/'.length);
         console.log(`Adding image from Object Storage to archive: ${key}`);
-        archive.append(await getFile(key), {
-          name: `images/${path.basename(key)}`
-        });
+        try {
+          archive.append(await getFile(key), {
+            name: `images/${path.basename(key)}`
+          });
+        } catch (error) {
+          console.warn(`Could not load image from Object Storage; skipping ${key}:`, error);
+        }
         continue;
       }
 
@@ -126,9 +130,13 @@ export async function downloadArticleAsZip(article: Article, user: User, res: Re
     if (article.video?.startsWith('/media/')) {
       const key = article.video.slice('/media/'.length);
       console.log(`Adding video from Object Storage to archive: ${key}`);
-      archive.append(await getFile(key), {
-        name: `videos/${path.basename(key)}`
-      });
+      try {
+        archive.append(await getFile(key), {
+          name: `videos/${path.basename(key)}`
+        });
+      } catch (error) {
+        console.warn(`Could not load video from Object Storage; skipping ${key}:`, error);
+      }
     }
     
     console.log(`Total images added to archive: ${imagesToInclude.length}`);
